@@ -1,0 +1,208 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Parameters": {
+
+    "CompanyName": {
+      "Description": "Private application subnet in Availability Zone 2.",
+      "Type": "String"
+    },
+
+    "VpcId": {
+      "Description": "Deployment target.",
+      "Type": "String"
+    },
+
+    "SecurityGroupNat": {
+      "Description": "Security Group ID of NAT Security Group",
+      "Type": "String"
+    },
+
+    "VpcName": {
+      "Description": "Instance Type of Front End ELB",
+      "Type": "String",
+      "Default": "demoenv"
+    },
+
+    "NotificationEmail": {
+      "Description": "EMail address to notify if there are any scaling operations",
+      "Type": "String",
+      "Default": "wujianhua@outlook.jp",
+      "AllowedPattern": "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)",
+      "ConstraintDescription": "must be a valid email address."
+    },
+
+    "SecurityGroupInfoFrontierAppSingle": {
+			"Description": "Availability zone 1.",
+			"Type": "String"
+		},
+
+		"OfficeSubnetCidr1": {
+			"Description": "Availability zone 2.",
+			"Type": "String"
+		},
+
+		"OfficeSubnetCidr2": {
+			"Description": "Public application subnet in Availability Zone 1.",
+			"Type": "String"
+		},
+
+		"OfficeSubnetCidr3": {
+			"Description": "Public application subnet in Availability Zone 2.",
+			"Type": "String"
+		},
+
+		"VpnSubnetCidr": {
+			"Description": "Private application subnet in Availability Zone 1.",
+			"Type": "String"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Security group that is common to all accessible linux servers.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "Security group for single instance InfoFrontier app deployments.",
+			"Type": "String"
+		},
+
+    "BucketSuffix": {
+      "Description": "This determines the suffix used for all buckets creates.",
+      "Type": "String"
+    },
+
+    "BucketKeysPrefix": {
+      "Description": "This determines the prefix used the keys bucket.",
+      "Type": "String"
+    },
+
+    "BucketStacksPrefix": {
+      "Description": "This determines the prefix used the stacks bucket.",
+      "Type": "String"
+    },
+
+    "BucketScriptsPrefix": {
+      "Description": "This determines the prefix used the scripts bucket.",
+      "Type": "String"
+    }
+
+  },
+
+  "Mappings": {
+
+    "Region": {
+
+      "us-east-1": {
+        "RegionName": "virginia",
+        "S3Endpoint": "s3.amazonaws.com"
+      },
+      "us-west-1": {
+        "RegionName": "california",
+        "S3Endpoint": "s3.amazonaws.com"
+      },
+      "us-west-2": {
+        "RegionName": "oregon",
+        "S3Endpoint": "s3.amazonaws.com"
+      },
+      "eu-west-1": {
+        "RegionName": "ireland",
+        "S3Endpoint": "s3-eu-west-1.amazonaws.com"
+      },
+      "eu-central-1": {
+        "RegionName": "frankfurt",
+        "S3Endpoint": "s3-eu-central-1.amazonaws.com"
+      },
+      "ap-northeast-1": {
+        "RegionName": "japan",
+        "S3Endpoint": "s3-ap-northeast-1.amazonaws.com"
+      },
+      "ap-southeast-1": {
+        "RegionName": "singapore",
+        "S3Endpoint": "s3-ap-southeast-1.amazonaws.com"
+      },
+      "ap-southeast-2": {
+        "RegionName": "sydney",
+        "S3Endpoint": "s3-ap-southeast-2.amazonaws.com"
+      },
+      "sa-east-1": {
+        "RegionName": "brazil",
+        "S3Endpoint": "s3-sa-east-1.amazonaws.com"
+      }
+    },
+
+    "Static": {
+
+      "Final": {
+
+        "EnvironmentName": "demoenv"
+      }
+    }
+  },
+
+
+  "Resources": {
+    "FrontEndSecurity": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketStacksPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/", { "Fn::FindInMap": [ "Static", "Final", "EnvironmentName" ] }, "/frontend/frontend-security.json" ] ] },
+        "Parameters": {
+          "VpcId": { "Ref": "VpcId" },
+          "SecurityGroupNat": { "Ref": "SecurityGroupNat" },
+          "VpcName": { "Ref": "VpcName" },
+          "SecurityGroupInfoFrontierAppSingle": { "Ref": "SecurityGroupInfoFrontierAppSingle" },
+          "OfficeSubnetCidr1": { "Ref": "OfficeSubnetCidr1"},
+          "OfficeSubnetCidr2": { "Ref": "OfficeSubnetCidr2"},
+          "OfficeSubnetCidr3": { "Ref": "OfficeSubnetCidr3"},
+          "VpnSubnetCidr": { "Ref": "VpnSubnetCidr"}
+        }
+      }
+    },
+
+    "FrontEndIAM": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketStacksPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/", { "Fn::FindInMap": [ "Static", "Final", "EnvironmentName" ] }, "/frontend/frontend-iam.json" ] ] },
+        "Parameters": {
+          "CompanyName": { "Ref": "CompanyName" },
+          "VpcName": { "Ref": "VpcName" },
+          "NotificationEmail": { "Ref": "NotificationEmail"},
+          "InternalDnsHostedZoneId": { "Ref": "InternalDnsHostedZoneId"},
+          "InternalDnsSuffix": { "Ref": "InternalDnsSuffix"},
+          "BucketKeys": { "Fn::Join": [ "-", [ { "Ref": "BucketKeysPrefix" }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, { "Ref": "BucketSuffix" } ] ] },
+          "BucketScripts": { "Fn::Join": [ "-", [ { "Ref": "BucketScriptsPrefix" }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, { "Ref": "BucketSuffix" } ] ] },
+          "KeyPath": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketKeysPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" } ] ] },
+          "ScriptPath": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" } ] ] }
+        }
+      }
+    }
+  },
+
+  "Outputs": {
+    "FrontEndELBSG": {
+      "Description": "Security group for front end ELB.",
+      "Value": { "Fn::GetAtt": [ "FrontEndSecurity", "Outputs.FrontEndELBSG"] }
+    },
+
+    "FrontEndNginxSG": {
+      "Description": "Security group for front end Nginx Nodes.",
+      "Value": { "Fn::GetAtt": [ "FrontEndSecurity", "Outputs.FrontEndNginxSG"] }
+    },
+
+    "FrontEndNginxRole": {
+      "Description": "IAM Role for InfoFrontier App Single",
+      "Value": { "Fn::GetAtt": [ "FrontEndIAM", "Outputs.FrontEndNginxRole"] }
+    },
+
+    "FrontEndProfile": {
+      "Description": "IAM Profile for InfoFrontier App Single",
+      "Value": { "Fn::GetAtt": [ "FrontEndIAM", "Outputs.FrontEndProfile"] }
+    },
+
+
+    "FrontEndSNS": {
+      "Description": "SNS Topic to be used by InfoFrontier App Single autoscaling",
+      "Value": { "Fn::GetAtt": [ "FrontEndIAM", "Outputs.FrontEndSNS"] }
+    }
+  }
+}

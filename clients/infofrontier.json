@@ -1,0 +1,83 @@
+{
+	"CompanyName": "InfoFrontier",
+	"AccountId": "862840685180",
+	"DefaultVpcId": "vpc-a5ab77c1",
+	"Region": "ap-northeast-1",
+	"EnableSsl": "no",
+
+	"DeployDemoEnv": "yes",
+	"DeployProdEnv": "yes",
+
+  "ClusterDesiredSizeWeb": "2",
+	"ClusterMinSizeWeb": "2",
+	"ClusterMaxSizeWeb": "5",
+
+
+	"CreateKeysBucket": "no",
+	"CreateNatGateway": "yes",
+
+	"BucketSuffix": "demo",
+	"BucketKeysPrefix": "keys",
+	"BucketDatabasePrefix": "database",
+	"BucketStacksPrefix": "stacks",
+	"BucketScriptsPrefix": "scripts",
+	"BucketBinariesPrefix": "binaries",
+
+	"NotificationEmail": "wujianhua@outlook.jp",
+	"CriticalAlertEmail": "wujianhua@outlook.jp",
+
+	"ExternalDnsHostedZoneId": "Z331HEQ8CVUGXW",
+	"ExternalDnsSuffix": "infofrontier.org",
+	"InternalDnsHostedZoneId": "",
+	"InternalDnsSuffix": "infofrontier.local",
+
+	"NatInstanceType": "t2.micro",
+	"NatMode": "single",
+	"TimeZone": "Asia/Tokyo",
+	"SingleZonePreference": "1",
+	"CreateVgw": "yes",
+	"VgwId": "",
+
+	"CreateNat": "no",
+
+
+	"CA_Country": "CN",
+	"CA_Province": "JS",
+	"CA_City": "Qidong",
+	"CA_Org": "DevOps Demo",
+	"CA_Email": "wujianhua@outlook.jp",
+	"CA_OU": "Consultant",
+
+
+	"CreateVpnSvr": "no",
+	"InitVpnKeys": false,
+	"VpnInstanceType": "t2.micro",
+	"VpnHostname": "vpn",
+
+	"CreateScmCluster": "yes",
+	"IsScmClusterPublic": "yes",
+	"ScmInstanceType": "m3.medium",
+	"ScmHostname": "code",
+	"ScmVersion": "4.13.0",
+	"ScmDataVolume": "vol-05e5761a61c6522e5",
+
+	"CreateBuildCluster": "yes",
+	"IsBuildClusterPublic": "yes",
+	"BuildInstanceType": "m3.xlarge",
+	"BuildHostname": "build",
+	"BuildVersion": "5.15.0.1",
+	"BuildDataVolume": "vol-0c64362ab057ef029",
+
+
+	"CreateRepoCluster": "yes",
+	"RepoInstanceType": "m3.medium",
+	"RepoHostname": "repo",
+	"RepoVersion": "2.14.3-02",
+	"RepoDataVolume": "vol-09c65878c71a8880a",
+
+	"CreateWikiCluster": "yes",
+	"WikiInstanceType": "m3.medium",
+	"WikiHostname": "wiki",
+	"WikiVersion": "6.0.6",
+	"WikiDataVolume": "vol-0c32f5562542b8c84"
+}

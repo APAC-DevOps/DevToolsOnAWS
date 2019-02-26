@@ -1,0 +1,6 @@
+set_var EASYRSA_REQ_COUNTRY		"{{country}}"
+set_var EASYRSA_REQ_PROVINCE	"{{province}}"
+set_var EASYRSA_REQ_CITY		"{{city}}"
+set_var EASYRSA_REQ_ORG			"{{org}}"
+set_var EASYRSA_REQ_EMAIL		"{{email}}"
+set_var EASYRSA_REQ_OU 			"{{ou}}"

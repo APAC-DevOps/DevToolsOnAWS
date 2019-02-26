@@ -1,0 +1,152 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Demo App Stack Entry",
+
+	"Parameters": {
+
+		"CompanyName": {
+			"Description": "Name of the company.",
+			"Type": "String"
+		},
+
+		"VpcName": {
+			"Description": "VPC name descriptor.",
+			"Type": "String"
+		},
+
+		"NotificationEmail": {
+			"Description": "This email address will receive all autoscaling event notifications.",
+			"Type": "String",
+			"AllowedPattern": "^[^@]+@[^@]+\\.[^@]+$"
+		},
+
+		"CriticalAlertEmail": {
+			"Description": "This email address will receive all production autoscaling event notifications.",
+			"Type": "String",
+			"AllowedPattern": "^[^@]+@[^@]+\\.[^@]+$"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for internal DNS.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"BucketKeys": {
+			"Description": "Bucket containing keys.",
+			"Type": "String"
+		},
+
+		"BucketScripts": {
+			"Description": "Bucket containing bootstrap scripts.",
+			"Type": "String"
+		},
+
+		"BucketBinaries": {
+			"Description": "Bucket containing installable binaries.",
+			"Type": "String"
+		},
+
+		"KeyPath": {
+			"Description": "Root path for all keys.",
+			"Type": "String"
+		},
+
+		"ScriptPath": {
+			"Description": "Root path for all scripts.",
+			"Type": "String"
+		},
+
+		"BinaryPath": {
+			"Description": "Root path for all binaries.",
+			"Type": "String"
+		},
+
+		"StackPath": {
+			"Description": "Root path for all stacks.",
+			"Type": "String"
+		}
+	},
+
+	"Resources": {
+
+		"IamSnsSqs": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "/", [ { "Ref": "StackPath" }, "permission-notification/iam-sns-sqs.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"CompanyName": { "Ref": "CompanyName" },
+					"VpcName": { "Ref": "VpcName" },
+					"NotificationEmail": { "Ref": "NotificationEmail" },
+					"CriticalAlertEmail": { "Ref": "CriticalAlertEmail" },
+					"InternalDnsHostedZoneId": { "Ref": "InternalDnsHostedZoneId" },
+					"InternalDnsSuffix": { "Ref": "InternalDnsSuffix" },
+					"BucketKeys": { "Ref": "BucketKeys" },
+					"BucketScripts": { "Ref": "BucketScripts" },
+					"BucketBinaries": { "Ref": "BucketBinaries" },
+					"KeyPath": { "Ref": "KeyPath" },
+					"ScriptPath": { "Ref": "ScriptPath" },
+					"BinaryPath": { "Ref": "BinaryPath" },
+					"StackPath": { "Ref": "StackPath" }
+				}
+			}
+		}
+	},
+
+	"Outputs": {
+
+		"RoleSingle": {
+			"Description": "IAM Role for InfoFrontier App Single",
+			"Value": { "Fn::GetAtt": [ "IamSnsSqs", "Outputs.RoleSingle" ] }
+		},
+
+		"ProfileSingle": {
+			"Description": "IAM Profile for InfoFrontier App Single",
+			"Value": { "Fn::GetAtt": [ "IamSnsSqs", "Outputs.ProfileSingle" ] }
+		},
+
+		"RoleWeb": {
+			"Description": "IAM Role for InfoFrontier App Web",
+			"Value": { "Fn::GetAtt": [ "IamSnsSqs", "Outputs.RoleWeb" ] }
+		},
+
+		"ProfileWeb": {
+			"Description": "IAM Profile for InfoFrontier App Web",
+			"Value": { "Fn::GetAtt": [ "IamSnsSqs", "Outputs.ProfileWeb" ] }
+		},
+
+		"RoleApi": {
+			"Description": "IAM Role for InfoFrontier App API",
+			"Value": { "Fn::GetAtt": [ "IamSnsSqs", "Outputs.RoleApi" ] }
+		},
+
+		"ProfileApi": {
+			"Description": "IAM Profile for InfoFrontier App API",
+			"Value": { "Fn::GetAtt": [ "IamSnsSqs", "Outputs.ProfileApi" ] }
+		},
+
+
+		"SnsSingle": {
+			"Description": "SNS Topic to be used by InfoFrontier App Single autoscaling",
+			"Value": { "Fn::GetAtt": [ "IamSnsSqs", "Outputs.SnsSingle" ] }
+		},
+
+		"SnsWeb": {
+			"Description": "SNS Topic to be used by InfoFrontier App Web autoscaling",
+			"Value": { "Fn::GetAtt": [ "IamSnsSqs", "Outputs.SnsWeb" ] }
+		},
+
+		"SnsApi": {
+			"Description": "SNS Topic to be used by InfoFrontier App API autoscaling",
+			"Value": { "Fn::GetAtt": [ "IamSnsSqs", "Outputs.SnsApi" ] }
+		}
+
+
+	}
+}

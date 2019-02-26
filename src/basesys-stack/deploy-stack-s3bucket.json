@@ -1,0 +1,51 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "This stack creates the S3 buckets into which stores CloudFormation Templates, Scripts and Installers, so they can be referenced by Cloud Formation.",
+
+	"Mappings": {
+
+		"Region": {
+
+			"ap-northeast-1": {
+				"BucketStacks": "stacks-tokyo-demo",
+				"BucketScripts": "scripts-tokyo-demo",
+				"BucketInstallers": "binaries-tokyo-demo"
+			}
+
+		}
+
+	},
+
+	"Resources": {
+
+		"BucketStacks": {
+			"Type": "AWS::S3::Bucket",
+			"Properties": {
+				"AccessControl": "Private",
+				"BucketName": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketStacks" ] }
+			},
+			"DeletionPolicy" : "Retain"
+		},
+
+		"BucketScripts": {
+			"Type": "AWS::S3::Bucket",
+			"Properties": {
+				"AccessControl": "Private",
+				"BucketName": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketScripts" ] }
+			},
+			"DeletionPolicy" : "Retain"
+		},
+
+		"BucketBinaries": {
+			"Type": "AWS::S3::Bucket",
+			"Properties": {
+				"AccessControl": "Private",
+				"BucketName": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketBinaries" ] }
+			},
+			"DeletionPolicy" : "Retain"
+		}
+
+	}
+
+}

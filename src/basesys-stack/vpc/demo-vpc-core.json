@@ -1,0 +1,763 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "DevOps Demo Infrastructure VPC Core Components",
+
+	"Parameters": {
+
+		"AvailabilityZone1": {
+			"Description": "Availability zone 1",
+			"Type": "String"
+		},
+
+		"AvailabilityZone2": {
+			"Description": "Availability zone 2",
+			"Type": "String"
+		},
+
+		"AllDestinationCidrBlock": {
+			"Description": "All IPv4 Destination",
+			"Type": "String"
+		},
+
+		"BaseAmi": {
+			"Description": "Base AMI",
+			"Type": "String"
+		},
+
+		"BucketKeys": {
+			"Description": "Bucket hosting vpn keys.",
+			"Type": "String"
+		},
+
+		"BucketScripts": {
+			"Description": "Bucket hosting bootstrap scripts.",
+			"Type": "String"
+		},
+
+		"BucketBinaries": {
+			"Description": "Bucket hosting binary files.",
+			"Type": "String"
+		},
+
+		"BucketStacks": {
+			"Description": "Bucket hosting binary files.",
+			"Type": "String"
+		},
+
+		"CompanyName": {
+			"Description": "Name of the company.",
+			"Type": "String"
+		},
+
+		"CreateScmCluster": {
+			"Description": "Determines if a Scm cluster is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CreateBuildCluster": {
+			"Description": "Determines if a Build cluster is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CreateRepoCluster": {
+			"Description": "Determines if a Repo cluster is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CreateNatGateway": {
+			"Description": "Determines if aws nat gateway is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CreateVpnSvr": {
+			"Description": "Determines if a vpn server is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CreateWikiCluster": {
+			"Description": "Determines if a Wiki cluster is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CriticalAlertEmail": {
+			"Description": "This email address will receive all production autoscaling event notifications.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "DNS Host Zone Id for VPC Internal Domain System",
+			"Type": "String"
+		},
+
+		"PeeredVpcCidr1": {
+			"Description": "Peered VPC CIDR 1.",
+			"Type": "String"
+		},
+
+		"Region": {
+			"Description": "AWS Region",
+			"Type": "String"
+		},
+
+		"S3Endpoint": {
+			"Description": "S3 endpoint.",
+			"Type": "String"
+		},
+
+		"ScriptPath": {
+			"Description": "Root path for all scripts.",
+			"Type": "String"
+		},
+
+		"StackPath": {
+			"Description": "Root path for all stacks.",
+			"Type": "String"
+		},
+
+		"TimeZone": {
+			"Description": "Time zone setting for servers.",
+			"Type": "String"
+		},
+
+		"VpcCidrBlock": {
+			"Description": "VPC Cidr Block",
+			"Type": "String"
+		},
+
+		"PublicRoutingSubnetZone1CidrBlock": {
+			"Description": "Public Routing Subnet Zone1 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PublicRoutingSubnetZone2CidrBlock": {
+			"Description": "Public Routing Subnet Zone2 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateScmSubnetZone1CidrBlock": {
+			"Description": "Private Scm Subnet Zone1 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateScmSubnetZone2CidrBlock": {
+			"Description": "Private Scm Subnet Zone2 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateBuildSubnetZone1CidrBlock": {
+			"Description": "Private Build Subnet Zone1 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateBuildSubnetZone2CidrBlock": {
+			"Description": "Private Build Subnet Zone2 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateRepoSubnetZone1CidrBlock": {
+			"Description": "Private Repo Subnet Zone1 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateRepoSubnetZone2CidrBlock": {
+			"Description": "Private Repo Subnet Zone2 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateWikiSubnetZone1CidrBlock": {
+			"Description": "Private Wiki Subnet Zone1 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateWikiSubnetZone2CidrBlock": {
+			"Description": "Private Wiki Subnet Zone2 Cidr Block ",
+			"Type": "String"
+		},
+
+
+		"VpnKeyName": {
+			"Description": "Vpn instances key name.",
+			"Type": "String"
+		},
+
+		"VpnHostname": {
+			"Description": "Hostname prefix for vpn servers.",
+			"Type": "String",
+			"Default": "vpn"
+		},
+
+		"VpnInstanceType": {
+			"Description": "Instance type to use for vpn hosts",
+			"Type": "String"
+		},
+
+		"VpnSubnetRange": {
+			"Description": "Vpn subnet range with mask notation.",
+			"Type": "String"
+		},
+
+		"VpnPushRoute1": {
+			"Description": "Vpn push route 1.",
+			"Type": "String"
+		},
+
+		"VpnPushRoute2": {
+			"Description": "Vpn push route 2.",
+			"Type": "String"
+		},
+
+		"VpnPushRoute3": {
+			"Description": "Vpn push route 3.",
+			"Type": "String"
+		},
+
+		"VpnSubnetCidr": {
+			"Description": "Vpn subnet range with cidr notation.",
+			"Type": "String"
+		}
+
+	},
+
+	"Conditions": {
+		"CreateScmSubnets": { "Fn::Equals": [ { "Ref": "CreateScmCluster" }, "yes" ] },
+		"CreateBuildSubnets": { "Fn::Equals": [ { "Ref": "CreateBuildCluster" }, "yes" ] },
+		"CreateRepositorySubnets": { "Fn::Equals": [ { "Ref": "CreateRepoCluster" }, "yes" ] },
+		"CreateWikiSubnets": { "Fn::Equals": [ { "Ref": "CreateWikiCluster" }, "yes" ] },
+		"CreateNatGateway": { "Fn::Equals": [ { "Ref": "CreateNatGateway" }, "yes" ] },
+		"CreateVpnSvr": { "Fn::Equals": [ { "Ref": "CreateVpnSvr" }, "yes" ] }
+	},
+
+	"Resources": {
+
+		"InfraVpc": {
+			"Type": "AWS::EC2::VPC",
+			"Properties": {
+				"CidrBlock": { "Ref": "VpcCidrBlock" },
+				"EnableDnsSupport" : "true",
+      	"EnableDnsHostnames" : "true",
+				"InstanceTenancy": "default",
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC" }
+				]
+			}
+		},
+
+		"InternetGateway" : {
+			"Type": "AWS::EC2::InternetGateway",
+			"Properties": {
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-InternetGateway" }
+				]
+			}
+		},
+
+		"AttachVpcGateway": {
+			"Type": "AWS::EC2::VPCGatewayAttachment",
+			"Properties": {
+				"VpcId": { "Ref": "InfraVpc" },
+				"InternetGatewayId": { "Ref": "InternetGateway" }
+			}
+		},
+
+		"NatEip": {
+			"Type": "AWS::EC2::EIP",
+			"Condition": "CreateNatGateway",
+			"Properties": {
+				"Domain": "InfraVpc"
+			}
+		},
+
+		"NatGateway": {
+			"Type": "AWS::EC2::NatGateway",
+			"DependsOn": "AttachVpcGateway",
+			"Condition": "CreateNatGateway",
+			"Properties": {
+				"AllocationId": { "Fn::GetAtt": [ "NatEip", "AllocationId"]},
+				"SubnetId": { "Ref": "PublicRoutingSubnetZone1"}
+			}
+		},
+
+
+		"PublicRoutingSubnetZone1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone1" },
+				"VpcId": { "Ref": "InfraVpc" },
+				"CidrBlock": { "Ref": "PublicRoutingSubnetZone1CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Public-Routing-Subnet-Zone1" }
+				]
+			}
+		},
+
+		"PublicRoutingSubnetZone2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone2" },
+				"VpcId": { "Ref": "InfraVpc" },
+				"CidrBlock": { "Ref": "PublicRoutingSubnetZone2CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Public-Routing-Subnet-Zone2" }
+				]
+			}
+		},
+
+		"PrivateScmSubnetZone1": {
+			"Type": "AWS::EC2::Subnet",
+			"Condition": "CreateScmSubnets",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone1" },
+				"VpcId": { "Ref": "InfraVpc" },
+				"CidrBlock": { "Ref": "PrivateScmSubnetZone1CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Private-Scm-Subnet-Zone1" }
+				]
+			}
+		},
+
+		"PrivateScmSubnetZone2": {
+			"Type": "AWS::EC2::Subnet",
+			"Condition": "CreateScmSubnets",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone2" },
+				"VpcId": { "Ref": "InfraVpc" },
+				"CidrBlock": { "Ref": "PrivateScmSubnetZone2CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Private-Scm-Subnet-Zone2" }
+				]
+			}
+		},
+
+		"PrivateBuildSubnetZone1": {
+			"Type": "AWS::EC2::Subnet",
+			"Condition": "CreateBuildSubnets",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone1" },
+				"VpcId": { "Ref": "InfraVpc" },
+				"CidrBlock": { "Ref": "PrivateBuildSubnetZone1CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Private-Build-Subnet-Zone1" }
+				]
+			}
+		},
+
+		"PrivateBuildSubnetZone2": {
+			"Type": "AWS::EC2::Subnet",
+			"Condition": "CreateBuildSubnets",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone2" },
+				"VpcId": { "Ref": "InfraVpc" },
+				"CidrBlock": { "Ref": "PrivateBuildSubnetZone2CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Private-Build-Subnet-Zone2" }
+				]
+			}
+		},
+
+		"PrivateRepositorySubnetZone1": {
+			"Type": "AWS::EC2::Subnet",
+			"Condition": "CreateRepositorySubnets",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone1" },
+				"VpcId": { "Ref": "InfraVpc" },
+				"CidrBlock": { "Ref": "PrivateRepoSubnetZone1CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Private-Repository-Subnet-Zone1" }
+				]
+			}
+		},
+
+		"PrivateRepositorySubnetZone2": {
+			"Type": "AWS::EC2::Subnet",
+			"Condition": "CreateRepositorySubnets",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone2" },
+				"VpcId": { "Ref": "InfraVpc" },
+				"CidrBlock": { "Ref": "PrivateRepoSubnetZone2CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Private-Repository-Subnet-Zone2" }
+				]
+			}
+		},
+
+		"PrivateWikiSubnetZone1": {
+			"Type": "AWS::EC2::Subnet",
+			"Condition": "CreateWikiSubnets",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone1" },
+				"VpcId": { "Ref": "InfraVpc" },
+				"CidrBlock": { "Ref": "PrivateWikiSubnetZone1CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Private-Wiki-Subnet-Zone1" }
+				]
+			}
+		},
+
+		"PrivateWikiSubnetZone2": {
+			"Type": "AWS::EC2::Subnet",
+			"Condition": "CreateWikiSubnets",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone2" },
+				"VpcId": { "Ref": "InfraVpc" },
+				"CidrBlock": { "Ref": "PrivateWikiSubnetZone2CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Private-Wiki-Subnet-Zone2" }
+				]
+			}
+		},
+
+
+		"InternetGatewayRouteTableZone1": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": { "Ref": "InfraVpc" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Internet-Gateway-RouteTable-Zone1" }
+				]
+			}
+		},
+
+		"InternetGatewayRouteZone1": {
+			"Type": "AWS::EC2::Route",
+			"Properties": {
+				"RouteTableId": { "Ref": "InternetGatewayRouteTableZone1" },
+				"DestinationCidrBlock": { "Ref": "AllDestinationCidrBlock"},
+				"GatewayId": { "Ref": "InternetGateway" }
+			}
+		},
+
+		"PublicRoutingSubnetRouteTableAssociationZone1" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": { "Ref": "PublicRoutingSubnetZone1" },
+				"RouteTableId": { "Ref": "InternetGatewayRouteTableZone1" }
+			}
+		},
+
+		"InternetGatewayRouteTableZone2": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": { "Ref": "InfraVpc" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Internet-Gateway-RouteTable-Zone2" }
+				]
+			}
+		},
+
+		"InternetGatewayRouteZone2": {
+			"Type": "AWS::EC2::Route",
+			"Properties": {
+				"RouteTableId": { "Ref": "InternetGatewayRouteTableZone2" },
+				"DestinationCidrBlock": { "Ref": "AllDestinationCidrBlock"},
+				"GatewayId": { "Ref": "InternetGateway" }
+			}
+		},
+
+		"PublicRoutingSubnetRouteTableAssociationZone2" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": { "Ref": "PublicRoutingSubnetZone2" },
+				"RouteTableId": { "Ref": "InternetGatewayRouteTableZone2" }
+			}
+		},
+
+
+		"PrivateRouteTableZone1": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": { "Ref": "InfraVpc" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Private-RouteTable-Zone1" }
+				]
+			}
+		},
+
+		"PrivateRouteTableZone1DefaultRoute": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "CreateNatGateway",
+			"Properties": {
+				"RouteTableId": { "Ref": "PrivateRouteTableZone1" },
+				"DestinationCidrBlock": { "Ref": "AllDestinationCidrBlock"},
+				"GatewayId": { "Ref": "InternetGateway" }
+			}
+		},
+
+		"PrivateRouteTableZone1DefaultVpnRoute": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": "AttachVpcGateway",
+			"Condition": "CreateVpnSvr",
+			"Properties": {
+				"RouteTableId": { "Ref": "PrivateRouteTableZone1" },
+				"DestinationCidrBlock": { "Ref": "VpnSubnetCidr" },
+				"GatewayId": { "Ref": "InternetGateway" }
+			}
+		},
+
+		"PrivateScmSubnetRouteTableAssociationZone1" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Condition": "CreateScmSubnets",
+			"Properties": {
+				"SubnetId": { "Ref": "PrivateScmSubnetZone1" },
+				"RouteTableId": { "Ref": "PrivateRouteTableZone1" }
+			}
+		},
+
+		"PrivateBuildSubnetRouteTableAssociationZone1" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Condition": "CreateBuildSubnets",
+			"Properties": {
+				"SubnetId": { "Ref": "PrivateBuildSubnetZone1" },
+				"RouteTableId": { "Ref": "PrivateRouteTableZone1" }
+			}
+		},
+
+		"PrivateRepositorySubnetRouteTableAssociationZone1" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Condition": "CreateRepositorySubnets",
+			"Properties": {
+				"SubnetId": { "Ref": "PrivateRepositorySubnetZone1" },
+				"RouteTableId": { "Ref": "PrivateRouteTableZone1" }
+			}
+		},
+
+		"PrivateWikiSubnetRouteTableAssociationZone1" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Condition": "CreateWikiSubnets",
+			"Properties": {
+				"SubnetId": { "Ref": "PrivateWikiSubnetZone1" },
+				"RouteTableId": { "Ref": "PrivateRouteTableZone1" }
+			}
+		},
+
+
+		"PrivateRouteTableZone2": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": { "Ref": "InfraVpc" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Demo-Infra-VPC-Private-RouteTable-Zone2" }
+				]
+			}
+		},
+
+		"PrivateRouteTableZone2DefaultRoute": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "CreateNatGateway",
+			"Properties": {
+				"RouteTableId": { "Ref": "PrivateRouteTableZone2" },
+				"DestinationCidrBlock": { "Ref": "AllDestinationCidrBlock"},
+				"GatewayId": { "Ref": "InternetGateway" }
+			}
+		},
+
+		"PrivateRouteTableZone2DefaultVpnRoute": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": "AttachVpcGateway",
+			"Condition": "CreateVpnSvr",
+			"Properties": {
+				"RouteTableId": { "Ref": "PrivateRouteTableZone2" },
+				"DestinationCidrBlock": { "Ref": "VpnSubnetCidr" },
+				"GatewayId": { "Ref": "InternetGateway" }
+			}
+		},
+
+
+		"PrivateScmSubnetRouteTableAssociationZone2" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Condition": "CreateScmSubnets",
+			"Properties": {
+				"SubnetId": { "Ref": "PrivateScmSubnetZone2" },
+				"RouteTableId": { "Ref": "PrivateRouteTableZone2" }
+			}
+		},
+
+		"PrivateBuildSubnetRouteTableAssociationZone2" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Condition": "CreateBuildSubnets",
+			"Properties": {
+				"SubnetId": { "Ref": "PrivateBuildSubnetZone2" },
+				"RouteTableId": { "Ref": "PrivateRouteTableZone2" }
+			}
+		},
+
+		"PrivateRepositorySubnetRouteTableAssociationZone2" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Condition": "CreateRepositorySubnets",
+			"Properties": {
+				"SubnetId": { "Ref": "PrivateRepositorySubnetZone2" },
+				"RouteTableId": { "Ref": "PrivateRouteTableZone2" }
+			}
+		},
+
+		"PrivateWikiSubnetRouteTableAssociationZone2" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Condition": "CreateWikiSubnets",
+			"Properties": {
+				"SubnetId": { "Ref": "PrivateWikiSubnetZone2" },
+				"RouteTableId": { "Ref": "PrivateRouteTableZone2" }
+			}
+		},
+
+		"VpcVpnShared": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Condition": "CreateVpnSvr",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "/", [ { "Ref": "StackPath" }, "basesys-stack/vpc/demo-vpc-vpn-shared.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"CompanyName": { "Ref": "CompanyName" },
+					"VpcId": { "Ref": "InfraVpc" },
+					"VpcCidrBlock": { "Ref": "VpcCidrBlock" },
+					"CriticalAlertEmail": { "Ref": "CriticalAlertEmail" },
+					"BucketScripts": { "Ref": "BucketScripts" },
+					"BucketBinaries": { "Ref": "BucketBinaries" },
+					"BucketStacks": { "Ref": "BucketStacks" },
+					"BucketKeys": { "Ref": "BucketKeys" },
+					"PeeredVpcCidr1": { "Ref": "PeeredVpcCidr1" }
+				}
+			}
+		},
+
+		"VpcVpn": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Condition": "CreateVpnSvr",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "/", [ { "Ref": "StackPath" }, "basesys-stack/vpc/demo-vpc-vpn.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"IamRole": { "Fn::GetAtt": [ "VpcVpnShared", "Outputs.Role" ] },
+					"IamProfile": { "Fn::GetAtt": [ "VpcVpnShared", "Outputs.Profile" ] },
+					"SecurityGroupVpn": { "Fn::GetAtt": [ "VpcVpnShared", "Outputs.SecurityGroupVpn" ] },
+					"SnsTopic": { "Fn::GetAtt": [ "VpcVpnShared", "Outputs.SnsVpnSAutoscale" ] },
+					"InstanceType": { "Ref": "VpnInstanceType" },
+					"AmiId": { "Ref": "BaseAmi" },
+					"BucketScripts": { "Ref": "BucketScripts" },
+					"BucketBinaries": { "Ref": "BucketBinaries" },
+					"BucketStacks": { "Ref": "BucketStacks" },
+					"BucketKeys": { "Ref": "BucketKeys" },
+					"TimeZone": { "Ref": "TimeZone" },
+					"AvailabilityZone1": { "Ref": "AvailabilityZone1" },
+					"AvailabilityZone2": { "Ref": "AvailabilityZone2" },
+					"S3Endpoint": { "Ref": "S3Endpoint" },
+					"RoutingSubnetZone1": { "Ref": "PublicRoutingSubnetZone1" },
+					"RoutingSubnetZone2": { "Ref": "PublicRoutingSubnetZone2" },
+					"KeyName": { "Ref": "VpnKeyName" },
+					"ScriptPath": { "Ref": "ScriptPath" },
+					"VpcCidr": { "Ref": "VpcCidrBlock" },
+					"VpnSubnetRange": { "Ref": "VpnSubnetRange" },
+					"VpnPushRoute1": { "Ref": "VpnPushRoute1" },
+					"VpnPushRoute2": { "Ref": "VpnPushRoute2" },
+					"VpnPushRoute3": { "Ref": "VpnPushRoute3" },
+					"VpnSubnetCidr": { "Ref": "VpnSubnetCidr" },
+					"Hostname": { "Ref": "VpnHostname" },
+					"Domain": { "Ref": "InternalDnsSuffix" },
+					"InternalDnsSuffix": { "Ref": "InternalDnsSuffix" },
+					"PrivateRouteTableZone1": { "Ref": "PrivateRouteTableZone1" },
+					"PrivateRouteTableZone2": { "Ref": "PrivateRouteTableZone2" },
+					"InternalDnsHostedZoneId": { "Ref": "InternalDnsHostedZoneId" }
+				}
+			}
+		}
+
+	},
+
+	"Outputs" : {
+
+		"VpcId": {
+			"Description": "Vpc ID",
+			"Value": { "Ref": "InfraVpc" }
+		},
+
+		"NatGateway": {
+			"Description": "NatGateway ID",
+			"Value": { "Fn::If": [ "CreateNatGateway", { "Ref": "NatGateway" }, "" ] }
+		},
+
+		"PublicRoutingSubnetZone1": {
+			"Description": "Routing subnet in Availability Zone 1",
+			"Value": { "Ref": "PublicRoutingSubnetZone1" }
+		},
+
+		"PublicRoutingSubnetZone2": {
+			"Description": "Routing subnet in Availability Zone 2",
+			"Value": { "Ref": "PublicRoutingSubnetZone2" }
+		},
+
+		"PrivateScmSubnetZone1": {
+			"Description": "SCM subnet in Availability Zone 1",
+			"Value": { "Fn::If": [ "CreateScmSubnets", { "Ref": "PrivateScmSubnetZone1" }, "" ] }
+		},
+
+		"PrivateScmSubnetZone2": {
+			"Description": "SCM subnet in Availability Zone 2",
+			"Value": { "Fn::If": [ "CreateScmSubnets", { "Ref": "PrivateScmSubnetZone2" }, "" ] }
+		},
+
+		"PrivateBuildSubnetZone1": {
+			"Description": "Build subnet in Availability Zone 1",
+			"Value": { "Fn::If": [ "CreateBuildSubnets", { "Ref": "PrivateBuildSubnetZone1" }, "" ] }
+		},
+
+		"PrivateBuildSubnetZone2": {
+			"Description": "Build subnet in Availability Zone 2",
+			"Value": { "Fn::If": [ "CreateBuildSubnets", { "Ref": "PrivateBuildSubnetZone2" }, "" ] }
+		},
+
+		"PrivateRepositorySubnetZone1": {
+			"Description": "Repository subnet in Availability Zone 1",
+			"Value": { "Fn::If": [ "CreateRepositorySubnets", { "Ref": "PrivateRepositorySubnetZone1" }, "" ] }
+		},
+
+		"PrivateRepositorySubnetZone2": {
+			"Description": "Repository subnet in Availability Zone 2",
+			"Value": { "Fn::If": [ "CreateRepositorySubnets", { "Ref": "PrivateRepositorySubnetZone2" }, "" ] }
+		},
+
+		"PrivateWikiSubnetZone1": {
+			"Description": "Wiki subnet in Availability Zone 1",
+			"Value": { "Fn::If": [ "CreateWikiSubnets", { "Ref": "PrivateWikiSubnetZone1" }, "" ] }
+		},
+
+		"PrivateWikiSubnetZone2": {
+			"Description": "Wiki subnet in Availability Zone 2",
+			"Value": { "Fn::If": [ "CreateWikiSubnets", { "Ref": "PrivateWikiSubnetZone2" }, "" ] }
+		},
+
+		"InternetGatewayRouteTableZone1": {
+			"Description": "Route table used by public subnets in zone1",
+			"Value": { "Ref": "InternetGatewayRouteTableZone1" }
+		},
+
+		"InternetGatewayRouteTableZone2": {
+			"Description": "Route table used by public subnets in zone2",
+			"Value": { "Ref": "InternetGatewayRouteTableZone2" }
+		},
+
+		"PrivateRouteTableZone1": {
+			"Description": "Route table used by private subnets in zone 1",
+			"Value": { "Ref": "PrivateRouteTableZone1" }
+		},
+
+		"PrivateRouteTableZone2": {
+			"Description": "Route table used by private subnets in zone 2",
+			"Value": { "Ref": "PrivateRouteTableZone2" }
+		},
+
+		"SecurityGroupVpn": {
+			"Description": "Security Group for VPN instances",
+			"Value": { "Fn::If": [ "CreateVpnSvr", { "Fn::GetAtt": [ "VpcVpnShared", "Outputs.SecurityGroupVpn" ] }, "" ] }
+		}
+	}
+}

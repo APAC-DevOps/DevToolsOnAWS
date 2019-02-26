@@ -1,0 +1,908 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Cashwerkz Application Deploy Single",
+
+	"Parameters": {
+
+		"Target": {
+			"Description": "Deployment target.",
+			"Type": "String",
+			"AllowedValues": [ "integration", "production" ]
+		},
+
+		"InstanceTypeSingle": {
+			"Description": "Instance type to use for single nodes.",
+			"Type": "String"
+		},
+
+		"DatabaseSnapshot": {
+			"Description": "Database snapshot identitier.",
+			"Type": "String"
+		},
+
+		"DatabaseUser": {
+			"Description": "Database username.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"DatabasePassword": {
+			"Description": "Database password.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"WebVersion": {
+			"Description": "Web version.",
+			"Type": "String"
+		},
+
+		"ApiVersion": {
+			"Description": "API version.",
+			"Type": "String"
+		},
+
+		"IntegrationVersion": {
+			"Description": "Integration version.",
+			"Type": "String"
+		},
+
+		"RefId": {
+			"Description": "Reference id. This is usually the jira reference.",
+			"Type": "String"
+		},
+
+		"AvailabilityZone1": {
+			"Description": "Availability zone 1.",
+			"Type": "String"
+		},
+
+		"AvailabilityZone2": {
+			"Description": "Availability zone 2.",
+			"Type": "String"
+		},
+
+		"PublicApplicationSubnetZone1": {
+			"Description": "Public application subnet in Availability Zone 1.",
+			"Type": "String"
+		},
+
+		"PublicApplicationSubnetZone2": {
+			"Description": "Public application subnet in Availability Zone 2.",
+			"Type": "String"
+		},
+
+		"PrivateApplicationSubnetZone1": {
+			"Description": "Private application subnet in Availability Zone 1.",
+			"Type": "String"
+		},
+
+		"PrivateApplicationSubnetZone2": {
+			"Description": "Private application subnet in Availability Zone 2.",
+			"Type": "String"
+		},
+
+		"SecurityGroupLinuxServer": {
+			"Description": "Security group that is common to all accessible linux servers.",
+			"Type": "String"
+		},
+
+		"SecurityGroupCashwerkzAppSingle": {
+			"Description": "Security group for single instance Cashwerkz app deployments.",
+			"Type": "String"
+		},
+
+		"RoleSingle": {
+			"Description": "IAM Role for Cashwerkz App Single.",
+			"Type": "String"
+		},
+
+		"ProfileSingle": {
+			"Description": "IAM Profile for Cashwerkz App Single.",
+			"Type": "String"
+		},
+
+		"SnsSingle": {
+			"Description": "SNS Topic to be used by Cashwerkz App Single autoscaling.",
+			"Type": "String"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for internal DNS.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"NewRelicLicenseKey": {
+			"Description": "New Relic License Key.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"TimeZone": {
+			"Description": "Time zone setting for servers.",
+			"Type": "String"
+		},
+
+		"BucketSuffix": {
+			"Description": "This determines the suffix used for all buckets creates.",
+			"Type": "String"
+		},
+
+		"BucketKeysPrefix": {
+			"Description": "This determines the prefix used the keys bucket.",
+			"Type": "String"
+		},
+
+		"BucketDatabasePrefix": {
+			"Description": "This determines the prefix used the database bucket.",
+			"Type": "String"
+		},
+
+		"BucketStacksPrefix": {
+			"Description": "This determines the prefix used the stacks bucket.",
+			"Type": "String"
+		},
+
+		"BucketScriptsPrefix": {
+			"Description": "This determines the prefix used the scripts bucket.",
+			"Type": "String"
+		},
+
+		"BucketBinariesPrefix": {
+			"Description": "This determines the prefix used the binaries bucket.",
+			"Type": "String"
+		},
+
+		"TruliooCreds": {
+			"Description": "Trulioo credentials.",
+			"Type": "CommaDelimitedList",
+			"NoEcho": "true"
+		},
+
+		"SmtpCreds": {
+			"Description": "Smtp credentials.",
+			"Type": "CommaDelimitedList",
+			"NoEcho": "true"
+		},
+
+		"ApiCreds": {
+			"Description": "Api credentials",
+			"Type": "CommaDelimitedList",
+			"NoEcho": "true"
+		},
+
+		"RatesCreds": {
+			"Description": "Rates email credentials",
+			"Type": "CommaDelimitedList",
+			"NoEcho": "true"
+		},
+
+                "SupportEmail": {
+                        "Description": "Support Email",
+                        "Type": "String"
+                }
+	},
+
+	"Mappings": {
+
+		"Keys": {
+
+			"integration": {
+
+				"SingleKeyName": "integration-app-cashwerkz-single",
+				"WebKeyName": "integration-app-cashwerkz-web",
+				"ApiKeyName": "integration-app-cashwerkz-api",
+				"IntegrationKeyName": "integration-app-cashwerkz-integration",
+				"MongoKeyName": "integration-app-cashwerkz-mongo"
+			},
+
+			"production": {
+
+				"SingleKeyName": "production-app-cashwerkz-single",
+				"WebKeyName": "production-app-cashwerkz-web",
+				"ApiKeyName": "production-app-cashwerkz-api",
+				"IntegrationKeyName": "production-app-cashwerkz-integration",
+				"MongoKeyName": "production-app-cashwerkz-mongo"
+			}
+		},
+
+		"Info": {
+
+			"integration": {
+
+				"VpcName": "INTEGRATION"
+			},
+
+			"production": {
+
+				"VpcName": "PRODUCTION"
+			}
+		},
+
+		"Ami": {
+
+			"us-east-1": {
+				"Base": "ami-146e2a7c"
+			},
+			"us-west-1": {
+				"Base": "ami-42908907"
+			},
+			"us-west-2": {
+				"Base": "ami-dfc39aef"
+			},
+			"eu-west-1": {
+				"Base": "ami-9d23aeea"
+			},
+			"eu-central-1": {
+				"Base": "ami-04003319"
+			},
+			"ap-northeast-1": {
+				"Base": "ami-18869819"
+			},
+			"ap-southeast-1": {
+				"Base": "ami-96bb90c4"
+			},
+			"ap-southeast-2": {
+				"Base": "ami-fd9cecc7"
+			},
+			"sa-east-1": {
+				"Base": "ami-af9925b2"
+			}
+		},
+
+		"Region": {
+
+			"us-east-1": {
+				"RegionName": "virginia",
+				"S3Endpoint": "s3.amazonaws.com"
+			},
+			"us-west-1": {
+				"RegionName": "california",
+				"S3Endpoint": "s3.amazonaws.com"
+			},
+			"us-west-2": {
+				"RegionName": "oregon",
+				"S3Endpoint": "s3.amazonaws.com"
+			},
+			"eu-west-1": {
+				"RegionName": "ireland",
+				"S3Endpoint": "s3-eu-west-1.amazonaws.com"
+			},
+			"eu-central-1": {
+				"RegionName": "frankfurt",
+				"S3Endpoint": "s3-eu-central-1.amazonaws.com"
+			},
+			"ap-northeast-1": {
+				"RegionName": "japan",
+				"S3Endpoint": "s3-ap-northeast-1.amazonaws.com"
+			},
+			"ap-southeast-1": {
+				"RegionName": "singapore",
+				"S3Endpoint": "s3-ap-southeast-1.amazonaws.com"
+			},
+			"ap-southeast-2": {
+				"RegionName": "sydney",
+				"S3Endpoint": "s3-ap-southeast-2.amazonaws.com"
+			},
+			"sa-east-1": {
+				"RegionName": "brazil",
+				"S3Endpoint": "s3-sa-east-1.amazonaws.com"
+			}
+		}
+	},
+
+	"Resources": {
+
+		"SinlgeMetadata": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Properties": {
+				"ImageId": { "Fn::FindInMap": [ "Ami", { "Ref": "AWS::Region" }, "Base" ] },
+				"InstanceType": { "Ref": "InstanceTypeSingle" }
+			},
+			"Metadata": {
+				"AWS::CloudFormation::Authentication": {
+					"BucketAuth": {
+						"type": "S3",
+						"roleName": { "Ref": "RoleSingle" },
+						"buckets": [
+							{ "Fn::Join": [ "", [ { "Ref": "BucketKeysPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" } ] ] },
+							{ "Fn::Join": [ "", [ { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" } ] ] },
+							{ "Fn::Join": [ "", [ { "Ref": "BucketDatabasePrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" } ] ] },
+							{ "Fn::Join": [ "", [ { "Ref": "BucketBinariesPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" } ] ] }
+
+						]
+					}
+				},
+				"AWS::CloudFormation::Init": {
+					"configSets": {
+						"default": [ "logstash-forwarder", "logstash-forwarder-config", "time", "host", "dns", "repo", "java", "nginx", "mongodb-install", "mongodb-restore", "nexus", "node", "npm", "app", "cw-web", "cw-core-api", "cw-integration", "newrelic-repo", "newrelic" ]
+					},
+					"time": {
+						"files": {
+							"/etc/sysconfig/clock": {
+								"content": { "Fn::Join": [ "", [ "ZONE=\"", { "Ref": "TimeZone" }, "\"\n", "UTC=true\n" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-localtime": {
+								"command": "rm -rf /etc/localtime"
+							},
+							"2-localtime": {
+								"command": { "Fn::Join": [ "", [ "ln -s /usr/share/zoneinfo/", { "Ref": "TimeZone" }, " /etc/localtime" ] ] }
+							}
+						}
+					},
+					"host": {
+						"files": {
+							"/opt/cw/host/set-hostname.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/host/set-hostname-single.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"set-hostname": {
+								"command": { "Fn::Join": [ "", [ "/opt/cw/host/set-hostname.sh -i -h ", { "Ref": "RefId" }, " -d ", { "Ref": "InternalDnsSuffix" } ] ] }
+							}
+						}
+					},
+					"dns": {
+						"files": {
+							"/opt/cw/dns/record.json": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/dns/record.json" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/dns/route53.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/dns/route53.sh" ] ] },
+								"context": {
+									"region": { "Ref": "AWS::Region" }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/dns/route53-cleanup.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/dns/route53-cleanup.sh" ] ] },
+								"context": {
+									"region": { "Ref": "AWS::Region" },
+									"hosted_zone_id": { "Ref": "InternalDnsHostedZoneId" }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-add-base-dns": {
+								"command": { "Fn::Join": [ "", [ "/opt/cw/dns/route53.sh -sc -e 300 -n ", { "Ref": "RefId" }, ".", { "Ref": "InternalDnsSuffix" }, " -z ", { "Ref": "InternalDnsHostedZoneId" }, " -f /opt/cw/dns/record.json" ] ] }
+							},
+							"2-clean-up-01": {
+								"command": "ln -sf /opt/cw/dns/route53-cleanup.sh /etc/init.d/route53-cleanup"
+							},
+							"3-clean-up-02": {
+								"command": "chkconfig --level 0 route53-cleanup off"
+							}
+						}
+					},
+					"repo": {
+						"files": {
+							"/etc/yum.repos.d/mongodb-org-2.6.repo": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/mongodb/mongodb-org-2.6.repo" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"01-enable-epel": {
+								"command": "yum-config-manager --enable epel"
+							}
+						}
+					},
+					"java": {
+						"files": {
+							"/opt/cw/java/jdk-8u40-linux-x64.rpm": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketBinariesPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/libraries/java/jdk-8u40-linux-x64.rpm" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-install-java": {
+								"command": "rpm -ivh /opt/cw/java/jdk-8u40-linux-x64.rpm"
+							}
+						}
+					},
+					"nginx": {
+						"packages": {
+							"yum": {
+								"nginx": []
+							}
+						},
+						"files": {
+							"/etc/nginx/conf.d/proxy.conf": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/nginx/proxy-single.conf" ] ] },
+								"context": {
+									"hostname": { "Ref": "RefId" },
+									"domain": { "Ref": "InternalDnsSuffix" },
+									"web_proxy_pass_port": "9000",
+									"web_proxy_pass_path": "",
+									"api_proxy_pass_port": "8081",
+									"api_proxy_pass_path": "",
+									"mdb1_proxy_pass_port": "28017",
+									"mdb1_proxy_pass_path": "",
+									"mdb2_proxy_pass_port": "28018",
+									"mdb2_proxy_pass_path": "",
+									"mdb3_proxy_pass_port": "28019",
+									"mdb3_proxy_pass_path": ""
+								},
+								"mode": "000640",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"sources": {
+							"/etc/ssl": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketKeysPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/ssl/", { "Ref": "InternalDnsSuffix" }, "/", { "Ref": "InternalDnsSuffix" }, ".tar.gz" ] ] }
+						},
+						"services": {
+							"sysvinit": {
+								"nginx": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					},
+					"mongodb-install": {
+						"packages": {
+							"yum": {
+								"mongodb-org": [ "2.6.9" ],
+								"mongodb-org-server": [ "2.6.9" ],
+								"mongodb-org-shell": [ "2.6.9" ],
+								"mongodb-org-mongos": [ "2.6.9" ],
+								"mongodb-org-tools": [ "2.6.9" ]
+							}
+						},
+						"files": {
+							"/opt/cw/mongodb/mongod": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/mongodb/mongod-local.sh" ] ] },
+								"context": {
+									"hostname": { "Ref": "RefId" },
+									"domain": { "Ref": "InternalDnsSuffix" }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/mongodb/seed-data.db": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/mongodb/seed-data.db" ] ] },
+								"context": {
+									"user": { "Ref": "DatabaseUser" },
+									"pwd": { "Ref": "DatabasePassword" }
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-link-mongodb": {
+								"command": "ln -fs /opt/cw/mongodb/mongod /etc/init.d/mongod"
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"mongod": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					},
+					"mongodb-restore": {
+						"files": {
+							"/opt/cw/mongodb/backup.tar": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketDatabasePrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/", { "Ref": "DatabaseSnapshot" }, ".tar" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-untar": {
+								"command": "tar -xvf backup.tar",
+								"cwd": "/opt/cw/mongodb"
+							}
+						}
+					},
+					"nexus": {
+						"files": {
+							"/opt/cw/nexus/nexus-redirect-url.py": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/nexus/nexus-redirect-url.py" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/nexus/pull-deploy.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/nexus/pull-deploy.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/nexus/deploy-single.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/nexus/deploy-single.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						}
+					},
+					"node": {
+						"packages": {
+							"yum": {
+								"c-ares19": [],
+								"http-parser": [],
+								"libuv": [],
+								"v8-devel": [],
+								"v8": [ "3.14.5.10" ]
+							}
+						},
+						"files": {
+							"/opt/cw/nodejs/nodejs-0.10.36-3.el6.x86_64.rpm": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketBinariesPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/applications/nodejs/nodejs-0.10.36-3.el6.x86_64.rpm" ] ] },
+								"mode": "000755",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-install-node": {
+								"command": "rpm -ivh /opt/cw/nodejs/nodejs-0.10.36-3.el6.x86_64.rpm"
+							}
+						}
+					},
+					"npm": {
+						"packages": {
+							"yum": {
+								"npm": [ "1.3.6" ]
+							}
+						}
+					},
+					"app": {
+						"commands": {
+							"00-pull": {
+								"command": { "Fn::Join": [ "", [ "/opt/cw/nexus/deploy-single.sh -w ", { "Ref": "WebVersion" }, " -a ", { "Ref": "ApiVersion" }, " -i ", { "Ref": "IntegrationVersion" }, " -m ", { "Ref": "ApiVersion" } ] ] }
+							},
+							"01-create-user": {
+								"command": "useradd cashwerkz"
+							},
+							"02-set-owner": {
+								"command": "chown -R cashwerkz:cashwerkz /opt/cw/cw-web"
+							},
+							"03-set-owner": {
+								"command": "chown -R cashwerkz:cashwerkz /opt/cw/cw-core-api"
+							},
+							"04-set-owner": {
+								"command": "chown -R cashwerkz:cashwerkz /opt/cw/cw-integration"
+							},
+							"04-set-owner": {
+								"command": "chown -R cashwerkz:cashwerkz /opt/cw/cw-mongo-scripts"
+							}
+						}
+					},
+					"cw-web": {
+						"files": {
+							"/opt/cw/cw-web/start.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/cw-web/test_start.sh" ] ] },
+								"context": {
+									"port": "9000",
+									"api_url": { "Fn::Join": [ "", [ "https://", { "Ref": "RefId" }, ".", { "Ref": "InternalDnsSuffix" }, ":8443/api/" ] ] }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/cw-web/server/newrelic.js": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/cw-web/newrelic.js" ] ] },
+								"context": {
+									"app_name": { "Fn::Join": [ ".", [ "cw-web", { "Ref": "RefId" } ] ] },
+									"license_key": { "Ref": "NewRelicLicenseKey" }
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						}
+					},
+					"cw-core-api": {
+						"files": {
+							"/opt/cw/cw-core-api/bin/cw-core-api": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/cw-api/cw-core-api.sh" ] ] },
+								"context": {
+									"version": { "Ref": "ApiVersion" },
+									"max_memory": "768m"
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/cw-core-api/conf/logback.xml": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/cw-api/logback.xml" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/cw-core-api/conf/cw-core.properties": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/cw-api/cw-core.properties" ] ] },
+								"context": {
+									"hostname": { "Ref": "RefId" },
+									"domain": { "Ref": "InternalDnsSuffix" },
+									"server_port": "8081",
+									"server_context_path": "/api",
+									"management_port": "8082",
+									"management_number": "127.0.0.1",
+									"mongo_1_hostname": "localhost",
+									"mongo_1_port": "27017",
+									"mongo_2_hostname": "localhost",
+									"mongo_2_port": "27018",
+									"mongo_3_hostname": "localhost",
+									"mongo_3_port": "27019",
+									"mongo_username": { "Ref": "DatabaseUser" },
+									"mongo_password": { "Ref": "DatabasePassword" },
+									"trulioo_username": { "Fn::Select": [ "0", {"Ref": "TruliooCreds"} ] },
+									"trulioo_password": { "Fn::Select": [ "1", {"Ref": "TruliooCreds"} ] },
+									"smtp_host": "email-smtp.us-east-1.amazonaws.com",
+									"smtp_port": "465",
+									"smtp_username": { "Fn::Select": [ "0", {"Ref": "SmtpCreds"} ] },
+									"smtp_password": { "Fn::Select": [ "1", {"Ref": "SmtpCreds"} ] }
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-link-app": {
+								"command": "ln -fs /opt/cw/cw-core-api/bin/cw-core-api /etc/init.d/cw-core-api"
+							},
+							"2-create-log-dir": {
+								"command": "mkdir -p /var/log/cw-core-api"
+							},
+							"3-set-log-owner": {
+								"command": "chown -R cashwerkz:cashwerkz /var/log/cw-core-api"
+							},
+							"4-create-tmp-dir": {
+								"command": "mkdir -p /opt/cashwerkztmp"
+							},
+							"5-set-tmp-owner": {
+								"command": "chown -R cashwerkz:cashwerkz /opt/cashwerkztmp"
+							}
+						}
+					},
+					"cw-integration": {
+						"files": {
+							"/opt/cw/cw-integration/modules/cw-banks-ingdirect/conf/config.properties": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/cw-integration/cw-int-ing.properties" ] ] },
+								"context": {
+									"api_url": { "Fn::Join": [ "", [ "https://", { "Ref": "RefId" }, ".", { "Ref": "InternalDnsSuffix" }, ":8443/api" ] ] },
+									"api_service_user": { "Fn::Select": [ "0", { "Ref": "ApiCreds"} ] },
+									"api_service_password": { "Fn::Select": [ "1", { "Ref": "ApiCreds"} ] },
+									"rates_email": { "Fn::Select": [ "0", { "Ref": "RatesCreds"} ] },
+									"rates_password": { "Fn::Select": [ "1", { "Ref": "RatesCreds"} ] },
+									"support_email": { "Ref": "SupportEmail"}
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/cw-integration/modules/cw-banks-macquarie/conf/config.properties": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/cw-integration/cw-int-macquarie.properties" ] ] },
+								"context": {
+									"api_url": { "Fn::Join": [ "", [ "https://", { "Ref": "RefId" }, ".", { "Ref": "InternalDnsSuffix" }, ":8443/api" ] ] },
+									"api_service_user": { "Fn::Select": [ "0", { "Ref": "ApiCreds"} ] },
+									"api_service_password": { "Fn::Select": [ "1", { "Ref": "ApiCreds"} ] },
+									"rates_email": { "Fn::Select": [ "0", { "Ref": "RatesCreds"} ] },
+									"rates_password": { "Fn::Select": [ "1", { "Ref": "RatesCreds"} ] },
+									"support_email": { "Ref": "SupportEmail"}
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/cw-integration/modules/cw-banks-mebank/conf/config.properties": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/cw-integration/cw-int-mebank.properties" ] ] },
+								"context": {
+									"api_url": { "Fn::Join": [ "", [ "https://", { "Ref": "RefId" }, ".", { "Ref": "InternalDnsSuffix" }, ":8443/api" ] ] },
+									"api_service_user": { "Fn::Select": [ "0", { "Ref": "ApiCreds"} ] },
+									"api_service_password": { "Fn::Select": [ "1", { "Ref": "ApiCreds"} ] },
+									"rates_email": { "Fn::Select": [ "0", { "Ref": "RatesCreds"} ] },
+									"rates_password": { "Fn::Select": [ "1", { "Ref": "RatesCreds"} ] },
+									"support_email": { "Ref": "SupportEmail"}
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/cw-integration/modules/cw-banks-westpac/conf/config.properties": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/cw-integration/cw-int-westpac.properties" ] ] },
+								"context": {
+									"api_url": { "Fn::Join": [ "", [ "https://", { "Ref": "RefId" }, ".", { "Ref": "InternalDnsSuffix" }, ":8443/api" ] ] },
+									"api_service_user": { "Fn::Select": [ "0", { "Ref": "ApiCreds"} ] },
+									"api_service_password": { "Fn::Select": [ "1", { "Ref": "ApiCreds"} ] },
+									"rates_email": { "Fn::Select": [ "0", { "Ref": "RatesCreds"} ] },
+									"rates_password": { "Fn::Select": [ "1", { "Ref": "RatesCreds"} ] },
+									"support_email": { "Ref": "SupportEmail"}
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/cw-integration/crontab": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/cw-integration/crontab.int" ] ] },
+								"context": {
+									"app_env": { "Ref": "RefId" }
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-app-owner": {
+								"command": "chown -R cashwerkz:cashwerkz /opt/cw/cw-integration/modules"
+							},
+							"2-create-log-dir": {
+								"command": "mkdir -p /var/log/cw-integration"
+							},
+							"3-set-log-owner": {
+								"command": "chown -R cashwerkz:cashwerkz /var/log/cw-integration"
+							},
+							"4-set-crontab": {
+								"command": "crontab -u cashwerkz /opt/cw/cw-integration/crontab"
+							}
+						}
+					},
+					"newrelic-repo": {
+						"commands": {
+							"1-install-repo": {
+								"command": "rpm -Uvh http://download.newrelic.com/pub/newrelic/el5/x86_64/newrelic-repo-5-3.noarch.rpm"
+							}
+						}
+					},
+					"newrelic": {
+						"packages": {
+							"yum": {
+								"newrelic-sysmond": []
+							}
+						},
+						"commands": {
+							"1-set-license-key": {
+								"command": { "Fn::Join": [ "", [ "nrsysmond-config --set license_key=", { "Ref": "NewRelicLicenseKey" } ] ] }
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"newrelic-sysmond": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					},
+					"logstash-forwarder": {
+						"files": {
+							"/opt/cw/logstash-forwarder/logstash-forwarder-0.4.0-1.x86_64.rpm": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketBinariesPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/applications/logstash/logstash-forwarder-0.4.0-1.x86_64.rpm" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-install-logstashforwarder": {
+								"command": "rpm -ivh /opt/cw/logstash-forwarder/logstash-forwarder-0.4.0-1.x86_64.rpm"
+							}
+						}
+					},
+					"logstash-forwarder-config": {
+						"files": {
+							"/etc/pki/tls/certs/logstash-forwarder.crt": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/logstash/logstash-forwarder.crt" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/etc/logstash-forwarder.conf": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/logstash/logstash-forwarder.conf" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"logstash-forwarder": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+
+		"SingleLaunchConfig": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Properties": {
+				"IamInstanceProfile": { "Ref": "ProfileSingle" },
+				"ImageId": { "Fn::FindInMap": [ "Ami", { "Ref": "AWS::Region" }, "Base" ] },
+				"InstanceType": { "Ref": "InstanceTypeSingle" },
+				"InstanceMonitoring": "false",
+				"KeyName": { "Fn::FindInMap": [ "Keys", { "Ref": "Target" }, "SingleKeyName" ] },
+				"SecurityGroups": [
+					{ "Ref": "SecurityGroupLinuxServer" },
+					{ "Ref": "SecurityGroupCashwerkzAppSingle" }
+				],
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [ "", [
+							"#!/bin/bash\n",
+							"export JAVA_HOME=/usr/lib/jvm/jre\n",
+							"export EC2_HOME=/opt/aws/apitools/ec2\n",
+							"/opt/aws/bin/cfn-init -s ", { "Ref": "AWS::StackName" }, " -r SinlgeMetadata --region ", { "Ref": "AWS::Region" }, "\n",
+							"service mongod start\n",
+							"service mongod seed\n",
+							"/usr/bin/mongorestore --host rs0/localhost:27017,localhost:27018,localhost:27019 /opt/cw/mongodb/", { "Ref": "DatabaseSnapshot" }, "\n",
+							"/usr/bin/mongo rs0/localhost:27017,localhost:27018,localhost:27019/cw-db --eval \"scriptPath='/opt/cw/cw-mongo-scripts/dist/scripts/exec', dataPath='/opt/cw/cw-mongo-scripts/dist/scripts/data'\" /opt/cw/cw-mongo-scripts/dist/lib/db-schema.js > /opt/cw/cw-mongo-scripts/dist/db-schema.log\n",
+							"service cw-core-api start\n",
+							"/opt/cw/cw-web/start.sh\n"
+						] ]
+					}
+				}
+			}
+		},
+
+		"SingleAutoscalingGroup": {
+			"Type": "AWS::AutoScaling::AutoScalingGroup",
+			"Properties": {
+				"AvailabilityZones": [
+					{ "Ref": "AvailabilityZone1" },
+					{ "Ref": "AvailabilityZone2" }
+				],
+				"LaunchConfigurationName": { "Ref": "SingleLaunchConfig" },
+				"DesiredCapacity": "1",
+				"MaxSize": "1",
+				"MinSize": "1",
+				"NotificationConfiguration": {
+					"TopicARN": { "Ref": "SnsSingle" },
+					"NotificationTypes": [ "autoscaling:EC2_INSTANCE_LAUNCH", "autoscaling:EC2_INSTANCE_LAUNCH_ERROR", "autoscaling:EC2_INSTANCE_TERMINATE", "autoscaling:EC2_INSTANCE_TERMINATE_ERROR" ]
+				},
+				"VPCZoneIdentifier": [
+					{ "Ref": "PrivateApplicationSubnetZone1" },
+					{ "Ref": "PrivateApplicationSubnetZone2" }
+				],
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Fn::FindInMap": [ "Info", { "Ref": "Target" }, "VpcName" ] }, " - App Single - ", { "Ref": "RefId" } ] ] }, "PropagateAtLaunch": "true" },
+					{ "Key": "Role", "Value": "cashwerkzappsingle", "PropagateAtLaunch": "true" },
+					{ "Key": "Segment", "Value": "app", "PropagateAtLaunch": "true" },
+					{ "Key": "Sector", "Value": "private", "PropagateAtLaunch": "true" },
+					{ "Key": "Vpc", "Value": { "Fn::FindInMap": [ "Info", { "Ref": "Target" }, "VpcName" ] }, "PropagateAtLaunch": "true" }
+				]
+			}
+		}
+	}
+}

@@ -1,0 +1,15 @@
+{
+    "SecurityGroupVpn": "",
+    "BuildSvrRole": "",
+    "BuildSvrASGroup": "",
+    "BuildSvrSnsTopic": "",
+    "NatGateway": "rtb-651b5a01",
+    "BuildSvrLaunchConfig": "",
+    "VpcId": "vpc-17398173",
+    "PrivateRouteTableZone1": "rtb-bb1958df",
+    "PrivateRouteTableZone2": "rtb-ce1859aa",
+    "InternetGatewayRouteTableZone2": "rtb-651b5a01",
+    "SgBuildSvr": "",
+    "BuildSvrInstanceProfile": "",
+    "InternetGatewayRouteTableZone1": "rtb-d11b5ab5"
+}

@@ -1,0 +1,342 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Demo Env Demo App Components",
+
+	"Parameters": {
+
+		"CompanyName": {
+			"Description": "Name of the company.",
+			"Type": "String"
+		},
+
+		"VpcName": {
+			"Description": "VPC name descriptor.",
+			"Type": "String"
+		},
+
+		"NotificationEmail": {
+			"Description": "This email address will receive all autoscaling event notifications.",
+			"Type": "String",
+			"AllowedPattern": "^[^@]+@[^@]+\\.[^@]+$"
+		},
+
+		"CriticalAlertEmail": {
+			"Description": "This email address will receive all production autoscaling event notifications.",
+			"Type": "String",
+			"AllowedPattern": "^[^@]+@[^@]+\\.[^@]+$"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for internal DNS.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"BucketKeys": {
+			"Description": "Bucket containing keys.",
+			"Type": "String"
+		},
+
+		"BucketScripts": {
+			"Description": "Bucket containing bootstrap scripts.",
+			"Type": "String"
+		},
+
+		"BucketBinaries": {
+			"Description": "Bucket containing installable binaries.",
+			"Type": "String"
+		},
+
+		"KeyPath": {
+			"Description": "Root path for all keys.",
+			"Type": "String"
+		},
+
+		"ScriptPath": {
+			"Description": "Root path for all scripts.",
+			"Type": "String"
+		},
+
+		"BinaryPath": {
+			"Description": "Root path for all binaries.",
+			"Type": "String"
+		},
+
+		"StackPath": {
+			"Description": "Root path for all stacks.",
+			"Type": "String"
+		}
+	},
+
+	"Resources": {
+
+		"RoleTest": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Statement": [ {
+						"Effect": "Allow",
+						"Principal": {
+							"Service": [ "ec2.amazonaws.com" ]
+						},
+						"Action": [ "sts:AssumeRole" ]
+					} ]
+				},
+				"Path": "/app/"
+			}
+		},
+
+		"ProfileTest": {
+			"Type": "AWS::IAM::InstanceProfile",
+			"Properties": {
+				"Path": "/app/",
+				"Roles": [
+					{ "Ref": "RoleTest" }
+				]
+			}
+		},
+
+		"RoleUat": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Statement": [ {
+						"Effect": "Allow",
+						"Principal": {
+							"Service": [ "ec2.amazonaws.com" ]
+						},
+						"Action": [ "sts:AssumeRole" ]
+					} ]
+				},
+				"Path": "/uat/"
+			}
+		},
+
+		"ProfileUat": {
+			"Type": "AWS::IAM::InstanceProfile",
+			"Properties": {
+				"Path": "/uat/",
+				"Roles": [
+					{ "Ref": "RoleUat" }
+				]
+			}
+		},
+
+
+		"PolicyRoute53": {
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "UpdateRoute53",
+				"PolicyDocument": {
+					"Statement": [ {
+						"Action": [
+							"route53:ChangeResourceRecordSets",
+							"route53:GetChange",
+							"route53:GetHostedZone",
+							"route53:ListHostedZones",
+							"route53:ListResourceRecordSets"
+						],
+						"Resource": [
+							{ "Fn::Join": [ "/", [ "arn:aws:route53:::hostedzone", { "Ref": "InternalDnsHostedZoneId" } ] ] }
+						],
+						"Effect": "Allow"
+					} ]
+				},
+				"Roles": [
+					{ "Ref": "RoleTest" },
+					{ "Ref": "RoleUat" }
+				]
+			}
+		},
+
+		"PolicyS3Scripts": {
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "S3Scripts",
+				"PolicyDocument": {
+					"Statement": [ {
+						"Action": [
+							"s3:ListAllMyBuckets"
+						],
+						"Effect": "Allow",
+						"Resource": [ "arn:aws:s3:::*" ]
+					}, {
+						"Action": [
+							"s3:ListBucket",
+							"s3:GetObject"
+						],
+						"Effect": "Allow",
+						"Resource": [
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/host" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/host/*" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/dns" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/dns/*" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/nginx" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/nginx/*" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/nexus" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/nexus/*" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/cw-web" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/cw-web/*" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/cw-api" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/cw-api/*" ] ] }
+						]
+					} ]
+				},
+				"Roles": [
+					{ "Ref": "RoleTest" },
+					{ "Ref": "RoleUat" }
+				]
+			}
+		},
+
+		"PolicyS3BinariesApi": {
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "S3BinariesApi",
+				"PolicyDocument": {
+					"Statement": [ {
+						"Action": [
+							"s3:ListAllMyBuckets"
+						],
+						"Effect": "Allow",
+						"Resource": [ "arn:aws:s3:::*" ]
+					}, {
+						"Action": [
+							"s3:ListBucket",
+							"s3:GetObject"
+						],
+						"Effect": "Allow",
+						"Resource": [
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketBinaries" }, "/libraries/java" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketBinaries" }, "/libraries/java/*" ] ] }
+						]
+					} ]
+				},
+				"Roles": [
+					{ "Ref": "RoleTest" },
+					{ "Ref": "RoleUat" }
+				]
+			}
+		},
+
+		"PolicyS3BinariesWeb": {
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "S3BinariesWeb",
+				"PolicyDocument": {
+					"Statement": [ {
+						"Action": [
+							"s3:ListAllMyBuckets"
+						],
+						"Effect": "Allow",
+						"Resource": [ "arn:aws:s3:::*" ]
+					}, {
+						"Action": [
+							"s3:ListBucket",
+							"s3:GetObject"
+						],
+						"Effect": "Allow",
+						"Resource": [
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketBinaries" }, "/" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketBinaries" }, "/*" ] ] }
+						]
+					} ]
+				},
+				"Roles": [
+					{ "Ref": "RoleTest" },
+					{ "Ref": "RoleUat" }
+				]
+			}
+		},
+
+		"PolicyS3SslCerts": {
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "S3SslCerts",
+				"PolicyDocument": {
+					"Statement": [ {
+						"Action": [
+							"s3:ListAllMyBuckets"
+						],
+						"Effect": "Allow",
+						"Resource": [ "arn:aws:s3:::*" ]
+					}, {
+						"Action": [
+							"s3:ListBucket",
+							"s3:GetObject"
+						],
+						"Effect": "Allow",
+						"Resource": [
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketKeys" }, "/ssl/", { "Ref": "InternalDnsSuffix" } ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketKeys" }, "/ssl/", { "Ref": "InternalDnsSuffix" }, "/*" ] ] }
+						]
+					} ]
+				},
+				"Roles": [
+					{ "Ref": "RoleTest" },
+					{ "Ref": "RoleUat" }
+				]
+			}
+		},
+
+		"SnsTest" : {
+			"Type": "AWS::SNS::Topic",
+			"Properties": {
+				"TopicName": { "Fn::Join": [ "-", [ { "Ref": "VpcName" }, "IamMsgTest" ] ] },
+				"DisplayName": { "Fn::Join": [ "", [ { "Ref": "CompanyName" }, " System Alert - Demo Test System - Demo Env VPC" ] ] },
+				"Subscription": [
+					{ "Endpoint": { "Ref": "NotificationEmail" }, "Protocol": "email" }
+				]
+			}
+		},
+
+		"SnsUat" : {
+			"Type": "AWS::SNS::Topic",
+			"Properties": {
+				"TopicName": { "Fn::Join": [ "-", [ { "Ref": "VpcName" }, "IamMsgUat" ] ] },
+				"DisplayName": { "Fn::Join": [ "", [ { "Ref": "CompanyName" }, " System Alert - Demo Uat System - Demo Env VPC" ] ] },
+				"Subscription": [
+					{ "Endpoint": { "Ref": "NotificationEmail" }, "Protocol": "email" }
+				]
+			}
+		}
+	},
+
+	"Outputs": {
+
+		"RoleTest": {
+			"Description": "IAM Role for Demo App Single",
+			"Value": { "Ref": "RoleTest" }
+		},
+
+		"ProfileTest": {
+			"Description": "IAM Profile for Demo App Single",
+			"Value": { "Ref": "ProfileTest" }
+		},
+
+		"RoleUat": {
+			"Description": "IAM Role for Demo App Single",
+			"Value": { "Ref": "RoleUat" }
+		},
+
+		"ProfileUat": {
+			"Description": "IAM Profile for Demo App Single",
+			"Value": { "Ref": "ProfileUat" }
+		},
+
+		"SnsTest": {
+			"Description": "SNS Topic to be used by Demo Test System autoscaling",
+			"Value": { "Ref": "SnsTest" }
+		},
+
+		"SnsUat": {
+			"Description": "SNS Topic to be used by Demo Uat System autoscaling",
+			"Value": { "Ref": "SnsUat" }
+		}
+	}
+}

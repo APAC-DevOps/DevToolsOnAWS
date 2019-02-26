@@ -1,0 +1,15 @@
+{
+    "SecurityGroupVpn": "",
+    "BuildSvrRole": "devopsinfra-Apps-TFZOT7E736ES-BuildSvrStack-1-Role-119YS4TOR0Q6B",
+    "BuildSvrASGroup": "devopsinfra-Apps-TFZOT7E736ES-BuildSvrStack-1B2CAR4DSIJPE-Cluster-PQI5XLJ94P1O-AutoscalingGroup-154YIQCN3BCZ",
+    "BuildSvrSnsTopic": "arn:aws:sns:ap-northeast-1:862840685180:BambooAutoscaling",
+    "NatGateway": "rtb-22afba45",
+    "BuildSvrLaunchConfig": "devopsinfra-Apps-TFZOT7E736ES-BuildSvrStack-1B2CAR4DSIJPE-Cluster-PQI5XLJ94P1O-LaunchConfig-5SH6SA15QMC5",
+    "VpcId": "vpc-eaf2708d",
+    "PrivateRouteTableZone1": "rtb-20afba47",
+    "PrivateRouteTableZone2": "rtb-65aebb02",
+    "InternetGatewayRouteTableZone2": "rtb-22afba45",
+    "SgBuildSvr": "sg-e282b29b",
+    "BuildSvrInstanceProfile": "devopsinfra-Apps-TFZOT7E736ES-BuildSvrStack-1B2CAR4DSIJPE-Profile-IEF7S08VA1W9",
+    "InternetGatewayRouteTableZone1": "rtb-21afba46"
+}

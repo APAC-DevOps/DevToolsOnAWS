@@ -1,0 +1,479 @@
+InfoFrontier{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Info Frontier Demo Site Deploy",
+
+	"Parameters": {
+
+		"DemoPhpInstanceType": {
+			"Description": "Instance type to use for single nodes.",
+			"Type": "String"
+		},
+
+		"Target": {
+			"Description": "Deployment target.",
+			"Type": "String",
+			"AllowedValues": [ "demoenv", "prodenv" ]
+		},
+
+		"RefId": {
+			"Description": "Reference id. This is usually the jira reference.",
+			"Type": "String"
+		},
+
+		"AvailabilityZone1": {
+			"Description": "Availability zone 1.",
+			"Type": "String"
+		},
+
+		"AvailabilityZone2": {
+			"Description": "Availability zone 2.",
+			"Type": "String"
+		},
+
+		"BucketKeys": {
+			"Description": "This determines the prefix used the keys bucket.",
+			"Type": "String",
+			"Default": "keys-tokyo-demo"
+		},
+
+		"BucketStacks": {
+			"Description": "This determines the prefix used the stacks bucket.",
+			"Type": "String",
+			"Default": "stacks-tokyo-demo"
+		},
+
+		"BucketScripts": {
+			"Description": "This determines the prefix used the scripts bucket.",
+			"Type": "String",
+			"Default": "scripts-tokyo-demo"
+		},
+
+		"BucketBinaries": {
+			"Description": "This determines the prefix used the binaries bucket.",
+			"Type": "String",
+			"Default": "binaries-tokyo-demo"
+		},
+
+		"ExternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for external DNS.",
+			"Type": "String"
+		},
+
+		"ExternalDnsSuffix": {
+			"Description": "DNS Suffix used with public access. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for internal DNS.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"PrivateFrontEndAppSubnetZone1": {
+			"Description": "Private Front End subnet in Availability Zone 1.",
+			"Type": "String"
+		},
+
+		"PrivateFrontEndAppSubnetZone2": {
+			"Description": "Private Front End subnet in Availability Zone 2.",
+			"Type": "String"
+		},
+
+		"ProfileTest": {
+			"Description": "IAM Profile for InfoFrontier App Single.",
+			"Type": "String"
+		},
+
+		"RoleTest": {
+			"Description": "IAM Role for InfoFrontier App Single.",
+			"Type": "String"
+		},
+
+		"SecurityGroupLinuxServer": {
+			"Description": "Security group that is common to all accessible linux servers.",
+			"Type": "String"
+		},
+
+		"SecurityGroupDemoAppSingle": {
+			"Description": "Security group for single instance InfoFrontier app deployments.",
+			"Type": "String"
+		},
+
+		"SnsTest": {
+			"Description": "SNS Topic to be used by InfoFrontier App Single autoscaling.",
+			"Type": "String"
+		},
+
+		"TimeZone": {
+			"Description": "Time zone setting for servers.",
+			"Type": "String"
+		},
+
+    "SupportEmail": {
+	    "Description": "Support Email",
+	    "Type": "String"
+    },
+
+		"PhpCodeVersion": {
+			"Description": "php site code version",
+			"Type": "String"
+		}
+	},
+
+	"Mappings": {
+
+		"Keys": {
+
+			"demoenv": {
+
+				"SingleKeyName": "demo-cloud-devops"
+			},
+
+			"prodenv": {
+
+				"SingleKeyName": "demo-cloud-devops"
+			}
+		},
+
+		"Info": {
+
+			"demoenv": {
+
+				"VpcName": "DEMOENV"
+			},
+
+			"prodenv": {
+
+				"VpcName": "PRODENV"
+			}
+		},
+
+		"Ami": {
+
+			"us-east-1": {
+				"Base": "ami-146e2a7c"
+			},
+			"us-west-1": {
+				"Base": "ami-42908907"
+			},
+			"us-west-2": {
+				"Base": "ami-dfc39aef"
+			},
+			"eu-west-1": {
+				"Base": "ami-9d23aeea"
+			},
+			"eu-central-1": {
+				"Base": "ami-04003319"
+			},
+			"ap-northeast-1": {
+				"Base": "ami-56d4ad31"
+			},
+			"ap-southeast-1": {
+				"Base": "ami-96bb90c4"
+			},
+			"ap-southeast-2": {
+				"Base": "ami-fd9cecc7"
+			},
+			"sa-east-1": {
+				"Base": "ami-af9925b2"
+			}
+		},
+
+		"Region": {
+
+			"us-east-1": {
+				"RegionName": "virginia",
+				"S3Endpoint": "s3.amazonaws.com"
+			},
+			"us-west-1": {
+				"RegionName": "california",
+				"S3Endpoint": "s3.amazonaws.com"
+			},
+			"us-west-2": {
+				"RegionName": "oregon",
+				"S3Endpoint": "s3.amazonaws.com"
+			},
+			"eu-west-1": {
+				"RegionName": "ireland",
+				"S3Endpoint": "s3-eu-west-1.amazonaws.com"
+			},
+			"eu-central-1": {
+				"RegionName": "frankfurt",
+				"S3Endpoint": "s3-eu-central-1.amazonaws.com"
+			},
+			"ap-northeast-1": {
+				"RegionName": "tokyo",
+				"S3Endpoint": "s3-ap-northeast-1.amazonaws.com"
+			},
+			"ap-southeast-1": {
+				"RegionName": "singapore",
+				"S3Endpoint": "s3-ap-southeast-1.amazonaws.com"
+			},
+			"ap-southeast-2": {
+				"RegionName": "sydney",
+				"S3Endpoint": "s3-ap-southeast-2.amazonaws.com"
+			},
+			"sa-east-1": {
+				"RegionName": "brazil",
+				"S3Endpoint": "s3-sa-east-1.amazonaws.com"
+			}
+		}
+	},
+
+	"Resources": {
+
+		"SinlgeMetadata": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Properties": {
+				"ImageId": { "Fn::FindInMap": [ "Ami", { "Ref": "AWS::Region" }, "Base" ] },
+				"InstanceType": { "Ref": "DemoPhpInstanceType" }
+			},
+			"Metadata": {
+				"AWS::CloudFormation::Authentication": {
+					"BucketAuth": {
+						"type": "S3",
+						"roleName": { "Ref": "RoleTest" },
+						"buckets": [ { "Ref": "BucketKeys" }, { "Ref": "BucketBinaries"}, { "Ref": "BucketScripts" }, { "Ref": "BucketStacks" } ]
+					}
+				},
+				"AWS::CloudFormation::Init": {
+					"configSets": {
+						"default": [ "time", "host", "dns", "oraclejdk", "php", "pull-php-code", "app" ]
+					},
+					"time": {
+						"files": {
+							"/etc/sysconfig/clock": {
+								"content": { "Fn::Join": [ "", [ "ZONE=\"", { "Ref": "TimeZone" }, "\"\n", "UTC=true\n" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-localtime": {
+								"command": "rm -rf /etc/localtime"
+							},
+							"2-localtime": {
+								"command": { "Fn::Join": [ "", [ "ln -s /usr/share/zoneinfo/", { "Ref": "TimeZone" }, " /etc/localtime" ] ] }
+							}
+						}
+					},
+					"host": {
+						"files": {
+							"/opt/cw/host/set-hostname.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScripts" }, "/host/set-hostname-single.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"set-hostname": {
+								"command": { "Fn::Join": [ "", [ "/opt/cw/host/set-hostname.sh -i -h ", { "Ref": "RefId" }, " -d ", { "Ref": "InternalDnsSuffix" } ] ] }
+							}
+						}
+					},
+					"dns": {
+						"files": {
+							"/opt/cw/dns/record.json": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScripts" }, "/dns/record.json" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/dns/route53.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScripts" }, "/dns/route53.sh" ] ] },
+								"context": {
+									"region": { "Ref": "AWS::Region" }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/dns/route53-cleanup.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScripts" }, "/dns/route53-cleanup.sh" ] ] },
+								"context": {
+									"region": { "Ref": "AWS::Region" },
+									"hosted_zone_id": { "Ref": "InternalDnsHostedZoneId" }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/cw/dns/route53-pub-cleanup.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScripts" }, "/dns/route53-cleanup.sh" ] ] },
+								"context": {
+									"region": { "Ref": "AWS::Region" },
+									"hosted_zone_id": { "Ref": "ExternalDnsHostedZoneId" }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"01-add-base-dns": {
+								"command": { "Fn::Join": [ "", [ "/opt/cw/dns/route53.sh -sc -e 300 -n ", { "Ref": "RefId" }, ".", { "Ref": "InternalDnsSuffix" }, " -z ", { "Ref": "InternalDnsHostedZoneId" }, " -f /opt/cw/dns/record.json" ] ] }
+							},
+							"02-clean-up-01": {
+								"command": "ln -sf /opt/cw/dns/route53-cleanup.sh /etc/init.d/route53-cleanup"
+							},
+							"03-clean-up-02": {
+								"command": "chkconfig --level 0 route53-cleanup off"
+							},
+							"04-add-pub-dns": {
+								"command": { "Fn::Join": [ "", [ "/opt/cw/dns/route53.sh -pc -e 300 -n ", { "Ref": "RefId" }, ".", { "Ref": "ExternalDnsSuffix" }, " -z ", { "Ref": "ExternalDnsHostedZoneId" }, " -f /opt/cw/dns/record.json" ] ] }
+							},
+							"05-clean-up-02": {
+								"command": "ln -sf /opt/cw/dns/route53-pub-cleanup.sh /etc/init.d/route53-pub-cleanup"
+							},
+							"06-clean-up-02": {
+								"command": "chkconfig --level 0 route53-pub-cleanup off"
+							}
+						}
+					},
+					"oraclejdk": {
+						"files": {
+							"/opt/oraclejdk.rpm": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketBinaries" }, "/oraclejdk18/jdk-8u121-linux-x64.rpm" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"0-install-jdk": {
+								"command": "rpm -ivh oraclejdk.rpm",
+								"cwd": "/opt"
+							}
+						}
+					},
+
+					"php": {
+						"packages": {
+							"yum": {
+								"php": [],
+								"httpd": [],
+								"mysql-server": []
+							}
+						},
+
+						"files": {
+							"/var/www/html/index.php": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScripts" }, "/nexus/index.php" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+
+						"services": {
+							"sysvinit": {
+								"httpd": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					},
+
+					"pull-php-code": {
+						"files": {
+							"/opt/infofrontier/nexus/nexus-redirect-url.py": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScripts" }, "/nexus/nexus-redirect-url.py" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/infofrontier/nexus/pull-deploy.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScripts" }, "/nexus/pull-deploy.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/infofrontier/nexus/deploy-single.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScripts" }, "/nexus/deploy-single.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						}
+					},
+
+					"app": {
+						"commands": {
+							"00-pull": {
+								"command": { "Fn::Join": [ "", [ "/opt/infofrontier/nexus/deploy-single.sh -w ", { "Ref": "PhpCodeVersion" } ] ] }
+							},
+							"01-copy": {
+								"command": "cp -R /opt/infofrontier/php-web/web-app/* /var/www/html/"
+							}
+						}
+					}
+
+				}
+			}
+		},
+
+		"SingleLaunchConfig": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Properties": {
+				"AssociatePublicIpAddress": "true",
+				"IamInstanceProfile": { "Ref": "ProfileTest" },
+				"ImageId": { "Fn::FindInMap": [ "Ami", { "Ref": "AWS::Region" }, "Base" ] },
+				"InstanceType": { "Ref": "DemoPhpInstanceType" },
+				"InstanceMonitoring": "false",
+				"KeyName": { "Fn::FindInMap": [ "Keys", { "Ref": "Target" }, "SingleKeyName" ] },
+				"SecurityGroups": [
+					{ "Ref": "SecurityGroupLinuxServer" },
+					{ "Ref": "SecurityGroupDemoAppSingle" }
+				],
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [ "", [
+							"#!/bin/bash\n",
+							"export JAVA_HOME=/usr/java/latest\n",
+							"export EC2_HOME=/opt/aws/apitools/ec2\n",
+							"/opt/aws/bin/cfn-init -s ", { "Ref": "AWS::StackName" }, " -r SinlgeMetadata --region ", { "Ref": "AWS::Region" }, "\n"
+						] ]
+					}
+				}
+			}
+		},
+
+		"SingleAutoscalingGroup": {
+			"Type": "AWS::AutoScaling::AutoScalingGroup",
+			"Properties": {
+				"AvailabilityZones": [
+					{ "Ref": "AvailabilityZone1" },
+					{ "Ref": "AvailabilityZone2" }
+				],
+				"LaunchConfigurationName": { "Ref": "SingleLaunchConfig" },
+				"DesiredCapacity": "1",
+				"MaxSize": "1",
+				"MinSize": "1",
+				"NotificationConfiguration": {
+					"TopicARN": { "Ref": "SnsTest" },
+					"NotificationTypes": [ "autoscaling:EC2_INSTANCE_LAUNCH", "autoscaling:EC2_INSTANCE_LAUNCH_ERROR", "autoscaling:EC2_INSTANCE_TERMINATE", "autoscaling:EC2_INSTANCE_TERMINATE_ERROR" ]
+				},
+				"VPCZoneIdentifier": [
+					{ "Ref": "PrivateFrontEndAppSubnetZone1" },
+					{ "Ref": "PrivateFrontEndAppSubnetZone2" }
+				],
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ "", [ { "Fn::FindInMap": [ "Info", { "Ref": "Target" }, "VpcName" ] }, " - App Single - ", { "Ref": "RefId" } ] ] }, "PropagateAtLaunch": "true" },
+					{ "Key": "Role", "Value": "INFOFRONTIER-DEMO-PHP-SITE", "PropagateAtLaunch": "true" },
+					{ "Key": "Segment", "Value": "DEMO", "PropagateAtLaunch": "true" },
+					{ "Key": "Sector", "Value": "PRIVATE", "PropagateAtLaunch": "true" },
+					{ "Key": "Vpc", "Value": { "Fn::FindInMap": [ "Info", { "Ref": "Target" }, "VpcName" ] }, "PropagateAtLaunch": "true" }
+				]
+			}
+		}
+	}
+}

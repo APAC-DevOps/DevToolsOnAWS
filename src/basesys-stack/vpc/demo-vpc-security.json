@@ -1,0 +1,412 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Jianhua Wu AWS DevOps Demo Infra Systems' Security Components",
+
+	"Parameters": {
+		"AllDestinationCidrBlock": {
+			"Description": "All IPv4 Destination",
+			"Type": "String"
+		},
+
+		"VpcId": {
+			"Description": "VPC Id",
+			"Type": "String"
+		},
+
+		"CreateScmCluster": {
+			"Description": "Determines if a Scm cluster is created.",
+			"Type": "String"
+		},
+
+		"CreateBuildCluster": {
+			"Description": "Determines if a Build cluster is created.",
+			"Type": "String"
+		},
+
+		"CreateRepoCluster": {
+			"Description": "Determines if a Repo cluster is created.",
+			"Type": "String"
+		},
+
+		"CreateWikiCluster": {
+			"Description": "Determines if a Wiki cluster is created.",
+			"Type": "String"
+		},
+
+		"CreateVpnSvr": {
+			"Description": "Determines if a vpn server is created.",
+			"Type": "String"
+		},
+
+		"SecurityGroupVpn": {
+			"Description": "VPN security group.",
+			"Type": "String"
+		},
+
+		"VpnSubnetCidr": {
+			"Description": "Vpn subnet range with cidr notation.",
+			"Type": "String"
+		}
+
+	},
+
+	"Conditions": {
+		"CreateScmCluster": { "Fn::Equals": [ { "Ref": "CreateScmCluster" }, "yes" ] },
+		"CreateBuildCluster": { "Fn::Equals": [ { "Ref": "CreateBuildCluster" }, "yes" ] },
+		"CreateRepoCluster": { "Fn::Equals": [ { "Ref": "CreateRepoCluster" }, "yes" ] },
+		"CreateWikiCluster": { "Fn::Equals": [ { "Ref": "CreateWikiCluster" }, "yes" ] },
+		"CreateVpnSvr": { "Fn::Equals": [ { "Ref": "CreateVpnSvr" }, "yes" ] },
+		"CreateScmClusterAndBuildCluster": { "Fn::And": [ { "Condition": "CreateScmCluster" }, { "Condition": "CreateBuildCluster" } ] },
+		"CreateScmClusterAndRepoCluster": { "Fn::And": [ { "Condition": "CreateScmCluster" }, { "Condition": "CreateRepoCluster" } ] },
+		"CreateBuildClusterAndRepoCluster": { "Fn::And": [ { "Condition": "CreateBuildCluster" }, { "Condition": "CreateRepoCluster" } ] },
+		"CreateScmClusterAndVpnSvr": { "Fn::And": [ { "Condition": "CreateScmCluster" }, { "Condition": "CreateVpnSvr" } ] },
+		"CreateBuildClusterAndVpnSvr": { "Fn::And": [ { "Condition": "CreateBuildCluster" }, { "Condition": "CreateVpnSvr" } ] },
+		"CreateRepoClusterAndVpnSvr": { "Fn::And": [ { "Condition": "CreateRepoCluster" }, { "Condition": "CreateVpnSvr" } ] }
+	},
+
+	"Resources": {
+
+		"SecurityGroupLinuxServer": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Security group that is common to all linux servers.",
+				"SecurityGroupIngress": [ {
+						"IpProtocol": "tcp",
+						"FromPort": "22",
+						"ToPort": "22",
+						"SourceSecurityGroupId": { "Ref": "SecurityGroupSshClient" }
+					}
+				],
+				"SecurityGroupEgress": [ {
+						"IpProtocol": "udp",
+						"FromPort": "53",
+						"ToPort": "53",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}, {
+						"IpProtocol": "udp",
+						"FromPort": "123",
+						"ToPort": "123",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}, {
+						"IpProtocol": "tcp",
+						"FromPort": "80",
+						"ToPort": "80",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}, {
+						"IpProtocol": "tcp",
+						"FromPort": "443",
+						"ToPort": "443",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}
+				],
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Sg - Common Linux Server" },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Vpc", "Value": "Demo-Infra-VPC" }
+				]
+			}
+		},
+
+		"LinuxSvrSSHInboundRuleFromVpnSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+				"Condition": "CreateVpnSvr",
+					"Properties": {
+						"GroupId": { "Ref": "SecurityGroupLinuxServer" },
+						"IpProtocol": "tcp",
+						"FromPort": "22",
+						"ToPort": "22",
+						"SourceSecurityGroupId": { "Ref": "SecurityGroupVpn" }
+					}
+		},
+
+		"LinuxSvrICMPInboundRuleFromVpnSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+				"Condition": "CreateVpnSvr",
+					"Properties": {
+						"GroupId": { "Ref": "SecurityGroupLinuxServer" },
+						"IpProtocol": "icmp",
+						"FromPort": "8",
+						"ToPort": "0",
+						"SourceSecurityGroupId": { "Ref": "SecurityGroupVpn" }
+					}
+		},
+
+		"SecurityGroupSshClient": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Security group for clients allowed to access linux servers over SSH.",
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Sg - SSH Client" },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Vpc", "Value": "Demo-Infra-VPC" }
+				]
+			}
+		},
+
+		"EgressRuleSshClient1": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupSshClient" },
+				"IpProtocol": "tcp",
+				"FromPort": "22",
+				"ToPort": "22",
+				"SourceSecurityGroupId": { "Ref": "SecurityGroupLinuxServer" }
+			}
+		},
+
+		"SgScmSvr": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Condition": "CreateScmCluster",
+			"Properties": {
+				"GroupDescription": "Security group associated with Scm servers.",
+				"SecurityGroupEgress": [ {
+					"IpProtocol": "tcp",
+					"FromPort": "587",
+					"ToPort": "587",
+					"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					},{
+						"IpProtocol": "tcp",
+						"FromPort": "465",
+						"ToPort": "465",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}
+				],
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Sg - BitBucket Server" },
+					{ "Key": "Segment", "Value": "app" },
+					{ "Key": "Vpc", "Value": "Demo-Infra-VPC" }
+				]
+			}
+		},
+
+		"ScmSvrInboundRuleFromVpnSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+				"Condition": "CreateScmClusterAndVpnSvr",
+					"Properties": {
+						"GroupId": { "Ref": "SgScmSvr" },
+						"IpProtocol": "-1",
+						"FromPort": "0",
+						"ToPort": "65535",
+						"SourceSecurityGroupId": { "Ref": "SecurityGroupVpn" }
+					}
+		},
+
+
+		"ScmSvrInboundRuleFromBuildSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateScmClusterAndBuildCluster",
+			"Properties": {
+				"GroupId": { "Ref": "SgScmSvr" },
+				"IpProtocol": "-1",
+				"FromPort": "0",
+				"ToPort": "65535",
+				"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+			}
+		},
+
+		"ScmSvrOutboundRuleToBuildSvr": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Condition": "CreateScmClusterAndBuildCluster",
+			"Properties": {
+				"GroupId": { "Ref": "SgScmSvr" },
+				"IpProtocol": "-1",
+				"FromPort": "0",
+				"ToPort": "65535",
+				"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+			}
+		},
+
+		"SgBuildSvr": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Condition": "CreateBuildCluster",
+			"Properties": {
+				"GroupDescription": "Security group associated with Build servers.",
+				"SecurityGroupEgress": [ {
+					"IpProtocol": "tcp",
+					"FromPort": "587",
+					"ToPort": "587",
+					"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					},{
+						"IpProtocol": "tcp",
+						"FromPort": "465",
+						"ToPort": "465",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					},{
+						"IpProtocol": "tcp",
+						"FromPort": "25",
+						"ToPort": "25",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}
+				],
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Sg - Build Server" },
+					{ "Key": "Segment", "Value": "app" },
+					{ "Key": "Vpc", "Value": "Demo-Infra-VPC" }
+				]
+			}
+		},
+
+		"BuildSvrInboundRuleFromVpnSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+				"Condition": "CreateBuildClusterAndVpnSvr",
+				"Properties": {
+				"GroupId": { "Ref": "SgBuildSvr" },
+				"IpProtocol": "-1",
+				"FromPort": "0",
+				"ToPort": "65535",
+				"SourceSecurityGroupId": { "Ref": "SecurityGroupVpn" }
+				}
+		},
+
+		"BuildSvrInboundRuleFromScmSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateScmClusterAndBuildCluster",
+			"Properties": {
+				"GroupId": { "Ref": "SgBuildSvr" },
+				"IpProtocol": "-1",
+				"FromPort": "0",
+				"ToPort": "65535",
+				"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+			}
+		},
+
+		"BuildSvrOutboundRuleToScmSvr": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Condition": "CreateScmClusterAndBuildCluster",
+			"Properties": {
+				"GroupId": { "Ref": "SgBuildSvr" },
+				"IpProtocol": "-1",
+				"FromPort": "0",
+				"ToPort": "65535",
+				"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+			}
+		},
+
+		"SgRepoSvr": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Condition": "CreateRepoCluster",
+			"Properties": {
+				"GroupDescription": "Security group associated with Repo servers.",
+				"SecurityGroupEgress": [ {
+					"IpProtocol": "tcp",
+					"FromPort": "587",
+					"ToPort": "587",
+					"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					},{
+						"IpProtocol": "tcp",
+						"FromPort": "465",
+						"ToPort": "465",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}
+				],
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Sg - Repo Server" },
+					{ "Key": "Segment", "Value": "app" },
+					{ "Key": "Vpc", "Value": "Demo-Infra-VPC" }
+				]
+			}
+		},
+
+		"RepoSvrInboundRuleFromVpnSvr": {
+				"Type": "AWS::EC2::SecurityGroupIngress",
+					"Condition": "CreateRepoClusterAndVpnSvr",
+					"Properties": {
+						"GroupId": { "Ref": "SgRepoSvr" },
+						"IpProtocol": "-1",
+						"FromPort": "0",
+						"ToPort": "65535",
+						"SourceSecurityGroupId": { "Ref": "SecurityGroupVpn" }
+					}
+			},
+
+			"RepoSvrInboundRuleFromBuildSvr": {
+				"Type": "AWS::EC2::SecurityGroupIngress",
+				"Condition": "CreateRepoCluster",
+				"Properties": {
+					"GroupId": { "Ref": "SgRepoSvr" },
+					"IpProtocol": "-1",
+					"FromPort": "0",
+					"ToPort": "65535",
+					"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+				}
+			},
+
+
+		"SgWikiSvr": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Condition": "CreateWikiCluster",
+			"Properties": {
+				"GroupDescription": "Security group associated with Wiki servers.",
+				"SecurityGroupIngress": [ {
+						"IpProtocol": "tcp",
+						"FromPort": "80",
+						"ToPort": "80",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}, {
+						"IpProtocol": "tcp",
+						"FromPort": "8090",
+						"ToPort": "8090",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}
+				],
+				"SecurityGroupEgress": [ {
+					"IpProtocol": "tcp",
+					"FromPort": "587",
+					"ToPort": "587",
+					"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					},{
+						"IpProtocol": "tcp",
+						"FromPort": "465",
+						"ToPort": "465",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}
+				],
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": "Sg - Wiki Server" },
+					{ "Key": "Segment", "Value": "app" },
+					{ "Key": "Vpc", "Value": "Demo-Infra-VPC" }
+				]
+			}
+		}
+	},
+
+	"Outputs": {
+
+		"SecurityGroupLinuxServer": {
+			"Description": "Security group that is common to all accessible linux servers.",
+			"Value": { "Ref": "SecurityGroupLinuxServer" }
+		},
+
+		"SecurityGroupSshClient": {
+			"Description": "Security group for clients allowed to access linux servers over SSH.",
+			"Value": { "Ref": "SecurityGroupSshClient" }
+		},
+
+		"SgScmSvr": {
+			"Description": "Security group associated with Scm servers.",
+			"Value": { "Fn::If": [ "CreateScmCluster", { "Ref": "SgScmSvr" }, "" ] }
+		},
+
+		"SgBuildSvr": {
+			"Description": "Security group associated with build servers.",
+			"Value": { "Fn::If": [ "CreateBuildCluster", { "Ref": "SgBuildSvr" }, "" ] }
+		},
+
+		"SgRepoSvr": {
+			"Description": "Security group associated with repo servers.",
+			"Value": { "Fn::If": [ "CreateRepoCluster", { "Ref": "SgRepoSvr" }, "" ] }
+		},
+
+		"SgWikiSvr": {
+			"Description": "Security group associated with Wiki servers.",
+			"Value": { "Fn::If": [ "CreateWikiCluster", { "Ref": "SgWikiSvr" }, "" ] }
+		}
+	}
+}

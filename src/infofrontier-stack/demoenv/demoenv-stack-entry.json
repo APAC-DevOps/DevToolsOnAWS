@@ -1,0 +1,417 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "VPC, Security Groups, and IAM Components For APP Environment",
+
+	"Parameters": {
+
+		"AllDestinationCidrBlock": {
+			"Description": "IP Address Block for All Destination",
+			"Type": "String"
+		},
+
+		"BasesysVpcId": {
+			"Description": "VPC ID of Basesys VPC",
+			"Type": "String"
+		},
+
+		"BasesysVpcCidrBlock": {
+			"Description": "CIDR BLOCK of Basesys VPC",
+			"Type": "String"
+		},
+
+		"BaseSysVpcPrivateRouteTableZone1": {
+			"Description": "Route Table ID of The Private Route Table Zone 1 of Basesys Vpc",
+			"Type": "String"
+		},
+
+		"BaseSysVpcPrivateRouteTableZone2": {
+			"Description": "Route Table ID of The Private Route Table Zone 2 of Basesys Vpc",
+			"Type": "String"
+		},
+
+		"CreateBasesysVpcPeering": {
+			"Description": "This determines if Creates VPC Peering to Basesys VPC",
+			"Type": "String"
+		},
+
+		"CompanyName": {
+			"Description": "Name of the company.",
+			"Type": "String"
+		},
+
+		"NotificationEmail": {
+			"Description": "This email address will receive all autoscaling event notifications.",
+			"Type": "String",
+			"AllowedPattern": "^[^@]+@[^@]+\\.[^@]+$"
+		},
+
+		"CriticalAlertEmail": {
+			"Description": "This email address will receive all production autoscaling event notifications.",
+			"Type": "String",
+			"AllowedPattern": "^[^@]+@[^@]+\\.[^@]+$"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for internal DNS.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"VpcCidrBlock": {
+			"Description": "First two stanzas of the vpc cidr block.",
+			"Type": "String"
+		},
+
+		"TimeZone": {
+			"Description": "Time zone setting for servers.",
+			"Type": "String"
+		},
+
+		"VpnSubnetCidr": {
+			"Description": "VPN subnet CIDR.",
+			"Type": "String"
+		},
+
+		"NexusSubnetCidr": {
+			"Description": "Nexus subnet CIDR.",
+			"Type": "String"
+		},
+
+		"BucketSuffix": {
+			"Description": "This determines the suffix used for all buckets creates.",
+			"Type": "String"
+		},
+
+		"BucketKeysPrefix": {
+			"Description": "This determines the prefix used the keys bucket.",
+			"Type": "String"
+		},
+
+
+		"BucketStacksPrefix": {
+			"Description": "This determines the prefix used the stacks bucket.",
+			"Type": "String"
+		},
+
+		"BucketScriptsPrefix": {
+			"Description": "This determines the prefix used the scripts bucket.",
+			"Type": "String"
+		},
+
+		"BucketBinariesPrefix": {
+			"Description": "This determines the prefix used the binaries bucket.",
+			"Type": "String"
+		},
+
+		"SgBuildSvr": {
+			"Description": "Security Group ID of Build Server from base infra VPC",
+			"Type": "String"
+		},
+
+		"PublicRoutingSubnetZone1CidrBlock": {
+			"Description": "Public Routing Subnet Zone 1 Cidr Block",
+			"Type": "String"
+		},
+
+		"PublicRoutingSubnetZone2CidrBlock": {
+			"Description": "Public Routing Subnet Zone 2 Cidr Block",
+			"Type": "String"
+		},
+
+		"PrivateFrontEndAppSubnetZone1CidrBlock": {
+			"Description": "Private Front End App Subnet Zone 1 Cidr Block",
+			"Type": "String"
+		},
+
+		"PrivateFrontEndAppSubnetZone2CidrBlock": {
+			"Description": "Private Front End App Subnet Zone 2 Cidr Block",
+			"Type": "String"
+		},
+
+		"PrivateBackEndAppSubnetZone1CidrBlock": {
+			"Description": "Private Back End App Subnet Zone 1 Cidr Block",
+			"Type": "String"
+		},
+
+		"PrivateBackEndAppSubnetZone2CidrBlock": {
+			"Description": "Private Back End App Subnet Zone 2 Cidr Block",
+			"Type": "String"
+		}
+	},
+
+	"Mappings": {
+
+		"Static": {
+
+			"Final": {
+
+				"EnvrionmentName": "demoenv",
+				"VpcName": "demoappvpc"
+			}
+		},
+
+		"Ami": {
+
+			"us-east-1": {
+				"Base": "ami-146e2a7c"
+			},
+			"us-west-1": {
+				"Base": "ami-42908907"
+			},
+			"us-west-2": {
+				"Base": "ami-dfc39aef"
+			},
+			"eu-west-1": {
+				"Base": "ami-9d23aeea"
+			},
+			"eu-central-1": {
+				"Base": "ami-04003319"
+			},
+			"ap-northeast-1": {
+				"Base": "ami-18869819"
+			},
+			"ap-southeast-1": {
+				"Base": "ami-96bb90c4"
+			},
+			"ap-southeast-2": {
+				"Base": "ami-fd9cecc7"
+			},
+			"sa-east-1": {
+				"Base": "ami-af9925b2"
+			}
+		},
+
+		"Region": {
+
+			"us-east-1": {
+				"RegionName": "virginia",
+				"AvailabilityZone1": "us-east-1a",
+				"AvailabilityZone2": "us-east-1b",
+				"S3Endpoint": "s3.amazonaws.com"
+			},
+			"us-west-1": {
+				"RegionName": "california",
+				"AvailabilityZone1": "us-west-1a",
+				"AvailabilityZone2": "us-west-1b",
+				"S3Endpoint": "s3.amazonaws.com"
+			},
+			"us-west-2": {
+				"RegionName": "oregon",
+				"AvailabilityZone1": "us-west-2a",
+				"AvailabilityZone2": "us-west-2b",
+				"S3Endpoint": "s3.amazonaws.com"
+			},
+			"eu-west-1": {
+				"RegionName": "ireland",
+				"AvailabilityZone1": "eu-west-1a",
+				"AvailabilityZone2": "eu-west-1b",
+				"S3Endpoint": "s3-eu-west-1.amazonaws.com"
+			},
+			"eu-central-1": {
+				"RegionName": "frankfurt",
+				"AvailabilityZone1": "eu-central-1a",
+				"AvailabilityZone2": "eu-central-1b",
+				"S3Endpoint": "s3-eu-central-1.amazonaws.com"
+			},
+			"ap-northeast-1": {
+				"RegionName": "tokyo",
+				"AvailabilityZone1": "ap-northeast-1a",
+				"AvailabilityZone2": "ap-northeast-1c",
+				"S3Endpoint": "s3-ap-northeast-1.amazonaws.com"
+			},
+			"ap-southeast-1": {
+				"RegionName": "singapore",
+				"AvailabilityZone1": "ap-southeast-1a",
+				"AvailabilityZone2": "ap-southeast-1b",
+				"S3Endpoint": "s3-ap-southeast-1.amazonaws.com"
+			},
+			"ap-southeast-2": {
+				"RegionName": "sydney",
+				"AvailabilityZone1": "ap-southeast-2a",
+				"AvailabilityZone2": "ap-southeast-2b",
+				"S3Endpoint": "s3-ap-southeast-2.amazonaws.com"
+			},
+			"sa-east-1": {
+				"RegionName": "brazil",
+				"AvailabilityZone1": "sa-east-1a",
+				"AvailabilityZone2": "sa-east-1b",
+				"S3Endpoint": "s3-sa-east-1.amazonaws.com"
+			}
+		}
+	},
+
+	"Resources": {
+
+		"VpcCore": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketStacksPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/", { "Fn::FindInMap": [ "Static", "Final", "EnvrionmentName" ] }, "/vpc/vpc-core.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"AvailabilityZone1": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "AvailabilityZone1" ] },
+					"AvailabilityZone2": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "AvailabilityZone2" ] },
+					"BasesysVpcId": { "Ref": "BasesysVpcId" },
+					"BasesysVpcCidrBlock": { "Ref": "BasesysVpcCidrBlock" },
+					"BaseSysVpcPrivateRouteTableZone1": { "Ref": "BaseSysVpcPrivateRouteTableZone1" },
+					"BaseSysVpcPrivateRouteTableZone2": { "Ref": "BaseSysVpcPrivateRouteTableZone2" },
+					"CreateBasesysVpcPeering": { "Ref": "CreateBasesysVpcPeering" },
+					"VpcCidrBlock": { "Ref": "VpcCidrBlock" },
+					"PublicRoutingSubnetZone1CidrBlock": { "Ref": "PublicRoutingSubnetZone1CidrBlock" },
+					"PublicRoutingSubnetZone2CidrBlock": { "Ref": "PublicRoutingSubnetZone2CidrBlock" },
+					"PrivateFrontEndAppSubnetZone1CidrBlock": { "Ref": "PrivateFrontEndAppSubnetZone1CidrBlock" },
+					"PrivateFrontEndAppSubnetZone2CidrBlock": { "Ref": "PrivateFrontEndAppSubnetZone2CidrBlock" },
+					"PrivateBackEndAppSubnetZone1CidrBlock": { "Ref": "PrivateBackEndAppSubnetZone1CidrBlock" },
+					"PrivateBackEndAppSubnetZone2CidrBlock": { "Ref": "PrivateBackEndAppSubnetZone2CidrBlock" },
+					"VpnSubnetCidr": { "Ref": "VpnSubnetCidr" },
+					"CriticalAlertEmail": { "Ref": "CriticalAlertEmail" },
+					"S3Endpoint": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] },
+					"VpcName": { "Fn::FindInMap": [ "Static", "Final", "VpcName" ] }
+				}
+			}
+		},
+
+		"VpcSecurity": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketStacksPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/", { "Fn::FindInMap": [ "Static", "Final", "EnvrionmentName" ] }, "/vpc/vpc-securitygroups.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"AllDestinationCidrBlock": { "Ref": "AllDestinationCidrBlock" },
+					"SgBuildSvr": { "Ref": "SgBuildSvr" },
+					"VpcId": { "Fn::GetAtt": [ "VpcCore", "Outputs.VpcId" ] },
+					"VpcName": { "Fn::FindInMap": [ "Static", "Final", "VpcName" ] },
+					"VpnSubnetCidr": { "Ref": "VpnSubnetCidr" },
+					"NexusSubnetCidr": { "Ref": "NexusSubnetCidr" },
+					"NatGateway": { "Fn::GetAtt": [ "VpcCore", "Outputs.NatGateway" ] }
+				}
+			}
+		},
+
+		"IamMsg": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketStacksPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/", { "Fn::FindInMap": [ "Static", "Final", "EnvrionmentName" ] }, "/ac-msg/iam-msg.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"CompanyName": { "Ref": "CompanyName" },
+					"VpcName": { "Fn::FindInMap": [ "Static", "Final", "VpcName" ] },
+					"NotificationEmail": { "Ref": "NotificationEmail" },
+					"CriticalAlertEmail": { "Ref": "CriticalAlertEmail" },
+					"InternalDnsHostedZoneId": { "Ref": "InternalDnsHostedZoneId" },
+					"InternalDnsSuffix": { "Ref": "InternalDnsSuffix" },
+					"BucketKeys": { "Fn::Join": [ "-", [ { "Ref": "BucketKeysPrefix" }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, { "Ref": "BucketSuffix" } ] ] },
+					"BucketScripts": { "Fn::Join": [ "-", [ { "Ref": "BucketScriptsPrefix" }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, { "Ref": "BucketSuffix" } ] ] },
+					"BucketBinaries": { "Fn::Join": [ "-", [ { "Ref": "BucketBinariesPrefix" }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, { "Ref": "BucketSuffix" } ] ] },
+					"KeyPath": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketKeysPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" } ] ] },
+					"ScriptPath": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" } ] ] },
+					"BinaryPath": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketBinariesPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" } ] ] },
+					"StackPath": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketStacksPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/", { "Fn::FindInMap": [ "Static", "Final", "EnvrionmentName" ] } ] ] }
+				}
+			}
+		}
+	},
+
+	"Outputs": {
+
+
+		"VpcId": {
+			"Description": "VPC ID of Integration VPC",
+			"Value": { "Fn::GetAtt": [ "VpcCore", "Outputs.VpcId" ] }
+		},
+
+		"AvailabilityZone1": {
+			"Description": "Availability zone 1",
+			"Value": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "AvailabilityZone1" ] }
+		},
+
+		"AvailabilityZone2": {
+			"Description": "Availability zone 2",
+			"Value": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "AvailabilityZone2" ] }
+		},
+
+		"PrivateFrontEndAppSubnetZone1": {
+			"Description": "private FrontEnd subnet in Availability Zone 1",
+			"Value": { "Fn::GetAtt": [ "VpcCore", "Outputs.PrivateFrontEndAppSubnetZone1" ] }
+		},
+
+		"PrivateFrontEndAppSubnetZone2": {
+			"Description": "Public FrontEnd subnet in Availability Zone 2",
+			"Value": { "Fn::GetAtt": [ "VpcCore", "Outputs.PrivateFrontEndAppSubnetZone2" ] }
+		},
+
+		"PrivateBackEndAppSubnetZone1": {
+			"Description": "Private FrontEnd subnet in Availability Zone 1",
+			"Value": { "Fn::GetAtt": [ "VpcCore", "Outputs.PrivateBackEndAppSubnetZone1" ] }
+		},
+
+		"PrivateBackEndAppSubnetZone2": {
+			"Description": "Private FrontEnd subnet in Availability Zone 2",
+			"Value": { "Fn::GetAtt": [ "VpcCore", "Outputs.PrivateBackEndAppSubnetZone2" ] }
+		},
+
+		"SecurityGroupLinuxServer": {
+			"Description": "Security group that is common to all accessible linux servers",
+			"Value": { "Fn::GetAtt": [ "VpcSecurity", "Outputs.SecurityGroupLinuxServer" ] }
+		},
+
+		"SecurityGroupSshClient": {
+			"Description": "Security group to SSH client.",
+			"Value": { "Fn::GetAtt": [ "VpcSecurity", "Outputs.SecurityGroupSshClient" ] }
+		},
+
+		"SecurityGroupDemoAppSingle": {
+			"Description": "Security group for single instance Demo app deployments",
+			"Value": { "Fn::GetAtt": [ "VpcSecurity", "Outputs.SecurityGroupDemoAppSingle" ] }
+		},
+
+		"SecurityGroupDemoFrontEndElb": {
+			"Description": "Security group for Demo app web elbs",
+			"Value": { "Fn::GetAtt": [ "VpcSecurity", "Outputs.SecurityGroupDemoFrontEndElb" ] }
+		},
+
+		"SecurityGroupDemoFrontEnd": {
+			"Description": "Security group for Demo app web servers",
+			"Value": { "Fn::GetAtt": [ "VpcSecurity", "Outputs.SecurityGroupDemoFrontEnd" ] }
+		},
+
+		"SecurityGroupDemoRdsMysql": {
+			"Description": "Security group for Demo Rds Myqsl Instance",
+			"Value": { "Fn::GetAtt": [ "VpcSecurity", "Outputs.SecurityGroupDemoRdsMysql" ] }
+		},
+
+		"RoleTest": {
+			"Description": "IAM Role for Demo App Single",
+			"Value": { "Fn::GetAtt": [ "IamMsg", "Outputs.RoleTest" ] }
+		},
+
+		"ProfileTest": {
+			"Description": "IAM Profile for Demo App Single",
+			"Value": { "Fn::GetAtt": [ "IamMsg", "Outputs.ProfileTest" ] }
+		},
+
+		"RoleUat": {
+			"Description": "IAM Role for Demo App Web",
+			"Value": { "Fn::GetAtt": [ "IamMsg", "Outputs.RoleUat" ] }
+		},
+
+		"ProfileUat": {
+			"Description": "IAM Profile for Demo App Web",
+			"Value": { "Fn::GetAtt": [ "IamMsg", "Outputs.ProfileUat" ] }
+		},
+
+		"SnsTest": {
+			"Description": "SNS Topic to be used by Demo Test System autoscaling",
+			"Value": { "Fn::GetAtt": [ "IamMsg", "Outputs.SnsTest" ] }
+		},
+
+		"SnsUat": {
+			"Description": "SNS Topic to be used by Demo Uat System autoscaling",
+			"Value": { "Fn::GetAtt": [ "IamMsg", "Outputs.SnsUat" ] }
+		}
+	}
+}

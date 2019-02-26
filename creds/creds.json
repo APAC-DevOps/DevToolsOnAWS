@@ -1,0 +1,8 @@
+{
+        "AccessKeyId": "Please Put Your AWS Access Key Here",
+        "SecretAccessKey": "Please Put Your AWS Secret Key Here",
+        "ScmDbPassword": "bitbucket",
+        "BuildDbPassword": "bamboo",
+        "WikiDbPassword": "confluence",
+        "RdsMySqlMasterUserPassword": "demo1234"
+}

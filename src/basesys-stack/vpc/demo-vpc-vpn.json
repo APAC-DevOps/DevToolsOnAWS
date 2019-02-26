@@ -1,0 +1,396 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Jianhua DevOps Infra OpenVPN Server",
+
+	"Parameters": {
+
+		"AmiId": {
+			"Description": "Ami to use for vpn instances.",
+			"Type": "String"
+		},
+
+		"InstanceType": {
+			"Description": "Instance type to use for vpn hosts",
+			"Type": "String"
+		},
+
+		"IamRole": {
+			"Description": "IAM role used by vpn instances.",
+			"Type": "String"
+		},
+
+		"IamProfile": {
+			"Description": "IAM profile used by vpn instances.",
+			"Type": "String"
+		},
+
+		"BucketScripts": {
+			"Description": "Bucket hosting bootstrap scripts.",
+			"Type": "String"
+		},
+
+		"BucketBinaries": {
+			"Description": "Bucket hosting binary files.",
+			"Type": "String"
+		},
+
+		"BucketStacks": {
+			"Description": "Bucket hosting binary files.",
+			"Type": "String"
+		},
+
+		"BucketKeys": {
+			"Description": "Bucket hosting keys.",
+			"Type": "String"
+		},
+
+		"TimeZone": {
+			"Description": "Time zone setting for servers.",
+			"Type": "String"
+		},
+
+		"AvailabilityZone1": {
+			"Description": "Availability Zone 1",
+			"Type": "String"
+		},
+
+		"AvailabilityZone2": {
+			"Description": "Availability Zone 2",
+			"Type": "String"
+		},
+
+		"S3Endpoint": {
+			"Description": "S3 endpoint.",
+			"Type": "String"
+		},
+
+		"SnsTopic": {
+			"Description": "SNS topic used for vpn notifications.",
+			"Type": "String"
+		},
+
+		"RoutingSubnetZone1": {
+			"Description": "Zone 1 subnet for vpn instances.",
+			"Type": "String"
+		},
+
+		"RoutingSubnetZone2": {
+			"Description": "Zone 2 subnet for vpn instances.",
+			"Type": "String"
+		},
+
+		"KeyName": {
+			"Description": "Vpn instances key name.",
+			"Type": "String"
+		},
+
+		"SecurityGroupVpn": {
+			"Description": "VPN security group.",
+			"Type": "String"
+		},
+
+		"TimeZone": {
+			"Description": "Time zone setting for servers.",
+			"Type": "String"
+		},
+
+		"ScriptPath": {
+			"Description": "Root path for all scripts.",
+			"Type": "String"
+		},
+
+		"VpcCidr": {
+			"Description": "CIDR block used by the VPC.",
+			"Type": "String"
+		},
+
+		"VpnSubnetRange": {
+			"Description": "Vpn subnet range with mask notation.",
+			"Type": "String"
+		},
+
+		"VpnPushRoute1": {
+			"Description": "Vpn push route 1.",
+			"Type": "String"
+		},
+
+		"VpnPushRoute2": {
+			"Description": "Vpn push route 2.",
+			"Type": "String"
+		},
+
+		"VpnPushRoute3": {
+			"Description": "Vpn push route 3.",
+			"Type": "String"
+		},
+
+		"VpnSubnetCidr": {
+			"Description": "Vpn subnet range with cidr notation.",
+			"Type": "String"
+		},
+
+		"Hostname": {
+			"Description": "Hostname prefix for the vpn instances.",
+			"Type": "String"
+		},
+
+		"Domain": {
+			"Description": "Domain portion of the hostname for the vpn instances.",
+			"Type": "String"
+		},
+
+		"PrivateRouteTableZone1": {
+			"Description": "Private subnet routing table for zone 1.",
+			"Type": "String"
+		},
+
+		"PrivateRouteTableZone2": {
+			"Description": "Private subnet routing table for zone 2.",
+			"Type": "String"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Private DNS Host Zone Id",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "Private DNS Suffix for VPC Host Zone",
+			"Type": "String"
+		}
+	},
+
+	"Conditions": {
+		"CreatePushRoute1": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "VpnPushRoute1" }, "" ] } ] },
+		"CreatePushRoute2": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "VpnPushRoute2" }, "" ] } ] },
+		"CreatePushRoute3": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "VpnPushRoute3" }, "" ] } ] }
+	},
+
+	"Resources": {
+
+		"Metadata": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Properties": {
+				"ImageId": { "Ref": "AmiId" },
+				"InstanceType": { "Ref": "InstanceType" }
+			},
+			"Metadata": {
+				"AWS::CloudFormation::Authentication": {
+					"BucketAuth": {
+						"type": "S3",
+						"roleName": { "Ref": "IamRole" },
+						"buckets": [ { "Ref": "BucketKeys" }, { "Ref": "BucketStacks" }, { "Ref": "BucketScripts" }, { "Ref": "BucketBinaries"} ]
+					}
+				},
+				"AWS::CloudFormation::Init": {
+					"configSets": {
+						"default": [ "time", "host", "vpn-setup" ]
+					},
+					"time": {
+						"files": {
+							"/etc/sysconfig/clock": {
+								"content": { "Fn::Join": [ "", [ "ZONE=\"", { "Ref": "TimeZone" }, "\"\n", "UTC=true\n" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-localtime": {
+								"command": "rm -rf /etc/localtime"
+							},
+							"2-localtime": {
+								"command": { "Fn::Join": [ "", [ "ln -s /usr/share/zoneinfo/", { "Ref": "TimeZone" }, " /etc/localtime" ] ] }
+							}
+						}
+					},
+					"host": {
+						"files": {
+							"/opt/p7/host/set-hostname.sh": {
+								"source": { "Fn::Join": [ "", [ { "Ref": "ScriptPath" }, "/host/set-hostname.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"set-hostname": {
+								"command": { "Fn::Join": [ "", [ "/opt/p7/host/set-hostname.sh -i -h ", { "Ref": "Hostname" }, " -d ", { "Ref": "Domain" } ] ] }
+							}
+						}
+					},
+					"vpn-setup": {
+						"packages": {
+							"yum": {
+								"openvpn": []
+							}
+						},
+						"files": {
+							"/opt/p7/route/source-dest-check.sh": {
+								"source": { "Fn::Join": [ "", [ { "Ref": "ScriptPath" }, "/route/source-dest-check.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/p7/route/acquire-route.sh": {
+								"source": { "Fn::Join": [ "", [ { "Ref": "ScriptPath" }, "/route/acquire-route.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/p7/openvpn/vpn-setup.sh": {
+								"source": { "Fn::Join": [ "", [ { "Ref": "ScriptPath" }, "/openvpn/vpn-setup.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root",
+								"context": {
+									"vpn_subnet": { "Ref": "VpnSubnetCidr" }
+								}
+							},
+							"/etc/openvpn/server.conf": {
+								"source": { "Fn::Join": [ "", [ { "Ref": "ScriptPath" }, "/openvpn/server.conf" ] ] },
+								"mode": "000400",
+								"owner": "root",
+								"group": "root",
+								"context": {
+									"vpn_subnet": { "Ref": "VpnSubnetRange" },
+									"push_route_1": { "Fn::If": [ "CreatePushRoute1", { "Fn::Join": [ "", [ "push \"route ", { "Ref": "VpnPushRoute1" }, "\"" ] ] }, "" ] },
+									"push_route_2": { "Fn::If": [ "CreatePushRoute2", { "Fn::Join": [ "", [ "push \"route ", { "Ref": "VpnPushRoute2" }, "\"" ] ] }, "" ] },
+									"push_route_3": { "Fn::If": [ "CreatePushRoute3", { "Fn::Join": [ "", [ "push \"route ", { "Ref": "VpnPushRoute3" }, "\"" ] ] }, "" ] }
+								}
+							},
+							"/etc/openvpn/keys/ca.crt": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Ref": "S3Endpoint" }, "/", { "Ref": "BucketKeys" }, "/openvpn/server/ca.crt" ] ] },
+								"authentication": "BucketAuth",
+								"mode": "000400",
+								"owner": "root",
+								"group": "root"
+							},
+							"/etc/openvpn/keys/server.crt": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Ref": "S3Endpoint" }, "/", { "Ref": "BucketKeys" }, "/openvpn/server/openvpn.server.crt" ] ] },
+								"authentication": "BucketAuth",
+								"mode": "000400",
+								"owner": "root",
+								"group": "root"
+							},
+							"/etc/openvpn/keys/server.key": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Ref": "S3Endpoint" }, "/", { "Ref": "BucketKeys" }, "/openvpn/server/openvpn.server.key" ] ] },
+								"authentication": "BucketAuth",
+								"mode": "000400",
+								"owner": "root",
+								"group": "root"
+							},
+							"/etc/openvpn/keys/dh.pem": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Ref": "S3Endpoint" }, "/", { "Ref": "BucketKeys" }, "/openvpn/server/dh.pem" ] ] },
+								"authentication": "BucketAuth",
+								"mode": "000400",
+								"owner": "root",
+								"group": "root"
+							},
+							"/etc/openvpn/keys/crl.pem": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Ref": "S3Endpoint" }, "/", { "Ref": "BucketKeys" }, "/openvpn/server/crl.pem" ] ] },
+								"authentication": "BucketAuth",
+								"mode": "000400",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/p7/vpn/vpn-crl-refresh.sh": {
+								"content": { "Fn::Join" : [ "", [
+									"aws s3 cp s3://", { "Ref": "BucketKeys" }, "/openvpn/server/crl.pem /tmp/crl.pem", " --region ", { "Ref": "AWS::Region" }, "\n",
+									"mv -f /tmp/crl.pem /etc/openvpn/keys/crl.pem\n",
+									"rm -f /tmp/crl.pem\n"
+								] ] },
+								"mode": "000700",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"0-ip-forward-nat": {
+								"command": "/opt/p7/openvpn/vpn-setup.sh"
+							},
+							"1-source-dest-check": {
+								"command": { "Fn::Join": [ "", [ "/opt/p7/route/source-dest-check.sh -r ", { "Ref": "AWS::Region" } ] ] }
+							},
+							"2-acquire-route-1": {
+								"command": { "Fn::Join": [ "", [ "/opt/p7/route/acquire-route.sh -t ", { "Ref": "PrivateRouteTableZone1" }, " -c ", { "Ref": "VpnSubnetCidr" }, " -r ", { "Ref": "AWS::Region" } ] ] }
+							},
+							"3-acquire-route-2": {
+								"command": { "Fn::Join": [ "", [ "/opt/p7/route/acquire-route.sh -t ", { "Ref": "PrivateRouteTableZone2" }, " -c ", { "Ref": "VpnSubnetCidr" }, " -r ", { "Ref": "AWS::Region" } ] ] }
+							},
+							"4-croncrlrefresh": {
+								"command": "echo '0 * * * *  /opt/p7/vpn/vpn-crl-refresh.sh' >> /tmp/vpncrlcron"
+							},
+							"5-cronwrite": {
+								"command": "crontab /tmp/vpncrlcron && rm -rf /tmp/vpncrlcron"
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"openvpn": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+
+		"LaunchConfig": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Properties": {
+				"AssociatePublicIpAddress": "true",
+				"IamInstanceProfile": { "Ref": "IamProfile" },
+				"ImageId": { "Ref": "AmiId" },
+				"InstanceType": { "Ref": "InstanceType" },
+				"InstanceMonitoring": "false",
+				"KeyName": { "Ref": "KeyName" },
+				"SecurityGroups": [
+					{ "Ref": "SecurityGroupVpn" }
+				],
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [ "", [
+							"#!/bin/bash\n",
+							"export JAVA_HOME=/usr/lib/jvm/jre\n",
+							"export EC2_HOME=/opt/aws/apitools/ec2\n",
+							"/opt/aws/bin/cfn-init -s ", { "Ref": "AWS::StackName" }, " -r Metadata --region ", { "Ref": "AWS::Region" }, "\n"
+						] ]
+					}
+				}
+			}
+		},
+
+		"AutoscalingGroup": {
+			"Type": "AWS::AutoScaling::AutoScalingGroup",
+			"Properties": {
+				"AvailabilityZones": [
+					{ "Ref": "AvailabilityZone1" },
+					{ "Ref": "AvailabilityZone2" }
+				],
+				"LaunchConfigurationName": { "Ref": "LaunchConfig" },
+				"DesiredCapacity": "1",
+				"MaxSize": "1",
+				"MinSize": "1",
+				"NotificationConfiguration": {
+					"TopicARN": { "Ref": "SnsTopic" },
+					"NotificationTypes": [ "autoscaling:EC2_INSTANCE_LAUNCH", "autoscaling:EC2_INSTANCE_LAUNCH_ERROR", "autoscaling:EC2_INSTANCE_TERMINATE", "autoscaling:EC2_INSTANCE_TERMINATE_ERROR" ]
+				},
+				"VPCZoneIdentifier": [
+					{ "Ref": "RoutingSubnetZone1" },
+					{ "Ref": "RoutingSubnetZone2" }
+				],
+				"Tags": [
+					{ "Key": "Name", "Value": "DevOps - Demo - Open VPN", "PropagateAtLaunch": "true" },
+					{ "Key": "Role", "Value": "vpn", "PropagateAtLaunch": "true" },
+					{ "Key": "Segment", "Value": "core", "PropagateAtLaunch": "true" },
+					{ "Key": "Sector", "Value": "public", "PropagateAtLaunch": "true" },
+					{ "Key": "Vpc", "Value": "InfraVpc", "PropagateAtLaunch": "true" }
+				]
+			}
+		}
+	}
+}

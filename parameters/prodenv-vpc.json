@@ -1,0 +1,10 @@
+{
+  "VpcCidrBlock": "10.22.0.0/16",
+  "PublicRoutingSubnetZone1CidrBlock": "10.22.0.0/28",
+  "PublicRoutingSubnetZone2CidrBlock": "10.22.0.128/28",
+  "PrivateFrontEndAppSubnetZone1CidrBlock": "10.22.16.0/22",
+  "PrivateFrontEndAppSubnetZone2CidrBlock": "10.22.144.0/22",
+  "PrivateBackEndAppSubnetZone1CidrBlock": "10.22.32.0/22",
+  "PrivateBackEndAppSubnetZone2CidrBlock": "10.22.160.0/22",
+  "CreateBasesysVpcPeering": "yes"
+}

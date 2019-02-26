@@ -1,0 +1,141 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+
+    "Description": "Demo Env MySql RDS Backend",
+
+    "Parameters": {
+
+        "AvailabilityZone1": {
+            "Description": "Availability Zone 1",
+            "Type": "String"
+        },
+
+				"AvailabilityZone2": {
+						"Description": "Availability Zone 2",
+						"Type": "String"
+				},
+
+				"PrivateBackEndAppSubnetZone1": {
+					"Description": " Mysql RDS subnet in zone 1",
+					"Type": "String"
+				},
+
+				"PrivateBackEndAppSubnetZone2": {
+					"Description": " Mysql RDS subnet in zone 2",
+					"Type": "String"
+				},
+
+				"RdsMySqlMasterUserPassword": {
+					"Description": "master user password for Rds Mysql",
+					"Type": "String"
+				},
+
+				"SecurityGroupDemoRdsMysql": {
+						"Description": "security group for RDS",
+						"Type": "String"
+				}
+
+    },
+
+    "Resources": {
+
+        "MySqlOptionGrp": {
+            "Type": "AWS::RDS::OptionGroup",
+            "Properties": {
+                "EngineName": "mysql",
+                "MajorEngineVersion": "5.6",
+                "OptionGroupDescription": "RDS Option Group For Backend MySql Servers",
+                "OptionConfigurations": [{
+                    "OptionName": "MEMCACHED",
+                    "VpcSecurityGroupMemberships": [{
+                        "Ref": "SecurityGroupDemoRdsMysql"
+                    }],
+                    "Port": "11211",
+                    "OptionSettings": [{
+                            "Name": "CHUNK_SIZE",
+                            "Value": "32"
+                        },
+                        {
+                            "Name": "BINDING_PROTOCOL",
+                            "Value": "ascii"
+                        }
+
+                    ]
+                }],
+                "Tags": [{
+                    "Key": "Name",
+                    "Value": "MySql Rds Option Group"
+                }, {
+                    "Key": "Vpc",
+                    "Value": "DemoenvVpc"
+                }]
+            }
+        },
+
+        "MysqlDbSubnetGrp": {
+            "Type": "AWS::RDS::DBSubnetGroup",
+            "Properties": {
+                "DBSubnetGroupDescription": "MySql DB Subnet Group for Web Server Farm",
+                "SubnetIds": [{
+                    "Ref": "PrivateBackEndAppSubnetZone1"
+                }, {
+                    "Ref": "PrivateBackEndAppSubnetZone2"
+                }]
+            }
+        },
+
+        "MySqlParaGrp": {
+            "Type": "AWS::RDS::DBParameterGroup",
+            "Properties": {
+                "Description": "Parameter Group For MySql backend servers",
+                "Family": "mysql5.6",
+                "Parameters": {
+                    "sql_mode": "IGNORE_SPACE",
+										"max_connections": "10"
+                }
+            }
+        },
+
+        "RdsMySql": {
+            "Type": "AWS::RDS::DBInstance",
+            "Properties": {
+                "AllocatedStorage": "10",
+                "AllowMajorVersionUpgrade": "false",
+                "AutoMinorVersionUpgrade": "false",
+                "AvailabilityZone": {
+                    "Ref": "AvailabilityZone1"
+                },
+                "BackupRetentionPeriod": "7",
+                "CopyTagsToSnapshot": "true",
+                "DBInstanceClass": "db.t2.micro",
+                "DBParameterGroupName": {
+                    "Ref": "MySqlParaGrp"
+                },
+                "DBSubnetGroupName": {
+                    "Ref": "MysqlDbSubnetGrp"
+                },
+                "Engine": "mysql",
+                "EngineVersion": "5.6.29",
+                "MasterUsername": "demo",
+                "MasterUserPassword": {
+                    "Ref": "RdsMySqlMasterUserPassword"
+                },
+                "MonitoringInterval": "0",
+                "OptionGroupName": {
+                    "Ref": "MySqlOptionGrp"
+                },
+                "Port": "3306",
+                "PreferredBackupWindow": "22:25-23:30",
+                "PubliclyAccessible": "false",
+                "StorageType": "gp2",
+                "Tags": [{
+                    "Key": "Name",
+                    "Value": "MySql 5.6.29"
+                }],
+                "VPCSecurityGroups": [{
+                    "Ref": "SecurityGroupDemoRdsMysql"
+                }]
+            }
+        }
+    }
+}

@@ -1,0 +1,217 @@
+InfoFrontier.orgInfoFrontier{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "IAM Policy for frontend Integration VPC",
+
+	"Parameters": {
+
+		"CompanyName": {
+			"Description": "Name of the company.",
+			"Type": "String"
+		},
+
+		"VpcName": {
+			"Description": "VPC name descriptor.",
+			"Type": "String"
+		},
+
+		"NotificationEmail": {
+			"Description": "This email address will receive all autoscaling event notifications.",
+			"Type": "String",
+			"AllowedPattern": "^[^@]+@[^@]+\\.[^@]+$"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for internal DNS.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"BucketKeys": {
+			"Description": "Bucket containing keys.",
+			"Type": "String"
+		},
+
+		"BucketScripts": {
+			"Description": "Bucket containing bootstrap scripts.",
+			"Type": "String"
+		},
+
+		"KeyPath": {
+			"Description": "Root path for all keys.",
+			"Type": "String"
+		},
+
+		"ScriptPath": {
+			"Description": "Root path for all scripts.",
+			"Type": "String"
+		}
+
+	},
+
+	"Resources": {
+
+		"FrontEndNginxRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Statement": [ {
+						"Effect": "Allow",
+						"Principal": {
+							"Service": [ "ec2.amazonaws.com" ]
+						},
+						"Action": [ "sts:AssumeRole" ]
+					} ]
+				},
+				"Path": "/frontend/"
+			}
+		},
+
+		"FrontEndProfile": {
+			"Type": "AWS::IAM::InstanceProfile",
+			"Properties": {
+				"Path": "/frontend/",
+				"Roles": [
+					{ "Ref": "FrontEndNginxRole" }
+				]
+			}
+		},
+
+		"FrontEndS3Policy": {
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "FrontEndS3Policy",
+				"PolicyDocument": {
+					"Statement": [ {
+						"Action": [
+							"s3:ListAllMyBuckets"
+						],
+						"Effect": "Allow",
+						"Resource": [ "arn:aws:s3:::*" ]
+					}, {
+						"Action": [
+							"s3:ListBucket",
+							"s3:GetObject"
+						],
+						"Effect": "Allow",
+						"Resource": [
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/host" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/host/*" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/dns" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/dns/*" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/nginx" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/nginx/*" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketKeys" }, "/ssl/", { "Ref": "InternalDnsSuffix" } ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketKeys" }, "/ssl/", { "Ref": "InternalDnsSuffix" }, "/*" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketKeys" }, "/ssl/InfoFrontier.org" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketKeys" }, "/ssl/InfoFrontier.org/*" ] ] }
+						]
+					} ]
+				},
+				"Roles": [
+					{ "Ref": "FrontEndNginxRole" }
+				]
+			}
+		},
+
+
+
+		"FrontEndSQSPolicy": {
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "FrontEndSQSPolicy",
+				"PolicyDocument": {
+					"Statement": [ {
+						"Action": [
+							"sqs:ChangeMessageVisibility",
+							"sqs:ChangeMessageVisibilityBatch",
+							"sqs:GetQueueAttributes",
+							"sqs:GetQueueUrl",
+							"sqs:ListQueues",
+							"sqs:SendMessage",
+							"sqs:SendMessageBatch",
+							"sqs:DeleteMessage",
+							"sqs:DeleteMessageBatch",
+							"sqs:ReceiveMessage"
+						],
+						"Resource": [
+							{ "Fn::Join": [ ":", [ "arn:aws:sqs", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "log*" ] ] }
+						],
+						"Effect": "Allow"
+					}, {
+						"Action": [
+							"sqs:ListQueues"
+						],
+						"Resource": [
+							"arn:aws:sqs:*"
+						],
+						"Effect": "Allow"
+					} ]
+				},
+				"Roles": [
+					{ "Ref": "FrontEndNginxRole" }
+				]
+			}
+		},
+
+		"FrontEndRoute53": {
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "FrontEndUpdateRoute53",
+				"PolicyDocument": {
+					"Statement": [ {
+						"Action": [
+							"route53:ChangeResourceRecordSets",
+							"route53:GetChange",
+							"route53:GetHostedZone",
+							"route53:ListHostedZones",
+							"route53:ListResourceRecordSets"
+						],
+						"Resource": [
+							{ "Fn::Join": [ "/", [ "arn:aws:route53:::hostedzone", { "Ref": "InternalDnsHostedZoneId" } ] ] }
+						],
+						"Effect": "Allow"
+					} ]
+				},
+				"Roles": [
+					{ "Ref": "FrontEndNginxRole" }
+				]
+			}
+		},
+
+		"FrontEndSNS" : {
+			"Type": "AWS::SNS::Topic",
+			"Properties": {
+				"TopicName": { "Fn::Join": [ "-", [ { "Ref": "VpcName" }, "InfoFrontierFrontEnd" ] ] },
+				"DisplayName": { "Fn::Join": [ "", [ { "Ref": "CompanyName" }, " System Alert - InfoFrontier Front End Nginx" ] ] },
+				"Subscription": [
+					{ "Endpoint": { "Ref": "NotificationEmail" }, "Protocol": "email" }
+				]
+			}
+		}
+	},
+
+	"Outputs": {
+
+		"FrontEndNginxRole": {
+			"Description": "IAM Role for InfoFrontier App Single",
+			"Value": { "Ref": "FrontEndNginxRole" }
+		},
+
+		"FrontEndProfile": {
+			"Description": "IAM Profile for InfoFrontier App Single",
+			"Value": { "Ref": "FrontEndProfile" }
+		},
+
+
+		"FrontEndSNS": {
+			"Description": "SNS Topic to be used by InfoFrontier App Single autoscaling",
+			"Value": { "Ref": "FrontEndSNS" }
+		}
+
+	}
+}

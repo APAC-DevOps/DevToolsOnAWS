@@ -1,0 +1,640 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Main CloudFormation Template for DevOps Demo ",
+
+	"Parameters": {
+
+		"AllDestinationCidrBlock": {
+			"Description": "All IPv4 Destination",
+			"Type": "String",
+			"Default": "0.0.0.0/0"
+		},
+
+		"BucketKeysPrefix": {
+			"Description": "This determines the prefix used the keys bucket.",
+			"Type": "String",
+			"Default": "keys"
+		},
+
+		"BucketSuffix": {
+			"Description": "This determines the suffix used for all buckets creates.",
+			"Type": "String",
+			"Default": "devops"
+		},
+
+		"BuildDatabasePassword": {
+			"Description": "Build database password.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"BuildDataVolume": {
+			"Description": "Volume id of the Build data.",
+			"Type": "String",
+			"Default": "vol-0c64362ab057ef029"
+		},
+
+		"BuildHostname": {
+			"Description": "Host name prefix for Build servers.",
+			"Type": "String",
+			"Default": "Bamboo"
+		},
+
+		"BuildInstanceType": {
+			"Description": "Instance type to use for Build servers.",
+			"Type": "String",
+			"Default": "c4.2xlarge"
+		},
+
+		"BuildVersion": {
+			"Description": "Build application version.",
+			"Type": "String",
+			"Default": "5.15.0.1"
+		},
+
+		"CompanyName": {
+			"Description": "Name of the company.",
+			"Type": "String",
+			"Default": "DevOps"
+		},
+
+		"CreateBuildCluster": {
+			"Description": "Determines if a Build cluster is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CreateNatGateway": {
+			"Description": "Determines if aws nat gateway is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CreateRepoCluster": {
+			"Description": "Determines if a Repo cluster is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CreateScmCluster": {
+			"Description": "Determines if a Scm cluster is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CreateVpnSvr": {
+			"Description": "Determines if a vpn server is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CreateWikiCluster": {
+			"Description": "Determines if a Wiki cluster is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CriticalAlertEmail": {
+			"Description": "This email address will receive all production autoscaling event notifications.",
+			"Type": "String",
+			"Default": "China_Australia@outlook.com"
+		},
+
+		"EnableSsl": {
+			"Description": "Determines if SSL is enabled for all web apps.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for internal DNS.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String",
+			"Default": "infofrontier.local"
+		},
+
+		"IsScmClusterPublic": {
+			"Description": "Is Scm Cluster Public Accessible",
+			"Type": "String"
+		},
+
+		"IsBuildClusterPublic": {
+			"Description": "Is Build Cluster Public Accessible",
+			"Type": "String"
+		},
+
+		"ExternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for External DNS.",
+			"Type": "String"
+		},
+
+		"ExternalDnsSuffix": {
+			"Description": "DNS Suffix used within Public Server. This applies to instance host names and to dns names.",
+			"Type": "String",
+			"Default": "infofrontier.org"
+		},
+
+		"NotificationEmail": {
+			"Description": "This email address will receive all autoscaling event notifications.",
+			"Type": "String",
+			"Default": "China_Australia@outlook.com"
+		},
+
+		"PeeredVpcCidr1": {
+			"Description": "Peered VPC CIDR 1.",
+			"Type": "String",
+			"Default": "10.21.0.0/16"
+		},
+
+		"PublicRoutingSubnetZone1CidrBlock": {
+			"Description": "Public Routing Subnet Zone1 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PublicRoutingSubnetZone2CidrBlock": {
+			"Description": "Public Routing Subnet Zone2 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateScmSubnetZone1CidrBlock": {
+			"Description": "Private Scm Subnet Zone1 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateScmSubnetZone2CidrBlock": {
+			"Description": "Private Scm Subnet Zone2 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateBuildSubnetZone1CidrBlock": {
+			"Description": "Private Build Subnet Zone1 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateBuildSubnetZone2CidrBlock": {
+			"Description": "Private Build Subnet Zone2 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateRepoSubnetZone1CidrBlock": {
+			"Description": "Private Repo Subnet Zone1 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateRepoSubnetZone2CidrBlock": {
+			"Description": "Private Repo Subnet Zone2 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateWikiSubnetZone1CidrBlock": {
+			"Description": "Private Wiki Subnet Zone1 Cidr Block ",
+			"Type": "String"
+		},
+
+		"PrivateWikiSubnetZone2CidrBlock": {
+			"Description": "Private Wiki Subnet Zone2 Cidr Block ",
+			"Type": "String"
+		},
+
+		"Region": {
+			"Description": "AWS Region",
+			"Type": "String"
+		},
+
+		"RepoDataVolume": {
+			"Description": "Volume id of the Repo data.",
+			"Type": "String",
+			"Default": "vol-0cc5a0716128c7724"
+		},
+
+		"RepoHostname": {
+			"Description": "Host name prefix for Repo servers.",
+			"Type": "String",
+			"Default": "Nexus"
+		},
+
+		"RepoInstanceType": {
+			"Description": "Instance type to use for Repo servers.",
+			"Type": "String",
+			"Default": "m3.medium"
+		},
+
+		"RepoVersion": {
+			"Description": "Repo application version.",
+			"Type": "String",
+			"Default": "3.2.1-01"
+		},
+
+		"ScmDatabasePassword": {
+			"Description": "Scm database password.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"ScmDataVolume": {
+			"Description": "Volume id of the Scm data.",
+			"Type": "String",
+			"Default": "vol-05e5761a61c6522e5"
+		},
+
+		"ScmHostname": {
+			"Description": "Host name prefix for Scm servers.",
+			"Type": "String",
+			"Default": "BitBucket"
+		},
+
+		"ScmInstanceType": {
+			"Description": "Instance type to use for Scm servers.",
+			"Type": "String",
+			"Default": "m3.medium"
+		},
+
+		"ScmVersion": {
+			"Description": "Scm application version.",
+			"Type": "String",
+			"Default": "4.13.0"
+		},
+
+		"SingleZonePreference": {
+			"Description": "Preferred zone for single zone components.",
+			"Type": "String",
+			"Default": "1"
+		},
+
+		"TimeZone": {
+			"Description": "Time zone setting for servers.",
+			"Type": "String",
+			"Default": "Asia/Tokyo"
+		},
+
+		"VpcCidrBlock": {
+			"Description": "First two stanzas of the vpc cidr block.",
+			"Type": "String",
+			"Default": "10.22.0.0"
+		},
+
+		"VpnHostname": {
+			"Description": "Hostname prefix for vpn servers.",
+			"Type": "String",
+			"Default": "vpn"
+		},
+
+		"VpnInstanceType": {
+			"Description": "Instance type to use for vpn hosts",
+			"Type": "String",
+			"Default": "t2.micro"
+		},
+
+		"VpnSubnetRange": {
+			"Description": "Vpn subnet range with mask notation.",
+			"Type": "String",
+			"Default": "172.22.0.0 255.255.255.0"
+		},
+
+		"VpnPushRoute1": {
+			"Description": "Vpn push route 1.",
+			"Type": "String",
+			"Default": "10.22.0.0 255.255.0.0"
+		},
+
+		"VpnPushRoute2": {
+			"Description": "Vpn push route 2.",
+			"Type": "String",
+			"Default": "172.31.0.0 255.255.0.0"
+		},
+
+		"VpnPushRoute3": {
+			"Description": "Vpn push route 3.",
+			"Type": "String",
+			"Default": "10.21.0.0 255.255.0.0"
+		},
+
+		"VpnSubnetCidr": {
+			"Description": "Vpn subnet range with cidr notation.",
+			"Type": "String",
+			"Default": "172.22.0.0/24"
+		},
+
+		"WikiInstanceType": {
+			"Description": "Instance type to use for Wiki servers.",
+			"Type": "String"
+		},
+
+		"WikiHostname": {
+			"Description": "Host name prefix for Wiki servers.",
+			"Type": "String"
+		},
+
+		"WikiVersion": {
+			"Description": "Wiki application version.",
+			"Type": "String"
+		},
+
+		"WikiDatabasePassword": {
+			"Description": "Wiki Server database password.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"WikiDataVolume": {
+			"Description": "Volume of Wiki Server User Data Directory",
+			"Type": "String"
+		}
+
+	},
+
+	"Mappings": {
+
+		"Static": {
+
+			"Keys": {
+				"VpnInstanceKeyName": "demo-cloud-devops",
+				"ScmInstanceKeyName": "demo-cloud-devops",
+				"BuildInstanceKeyName": "demo-cloud-devops",
+				"RepoInstanceKeyName": "demo-cloud-devops",
+				"WikiInstanceKeyName": "demo-cloud-devops"
+			}
+		},
+
+		"Ami": {
+
+			"us-east-1": {
+				"Base": "ami-146e2a7c"
+			},
+			"us-west-1": {
+				"Base": "ami-42908907"
+			},
+			"us-west-2": {
+				"Base": "ami-dfc39aef"
+			},
+			"eu-west-1": {
+				"Base": "ami-9d23aeea"
+			},
+			"eu-central-1": {
+				"Base": "ami-04003319"
+			},
+			"ap-northeast-1": {
+				"Base": "ami-56d4ad31"
+			},
+			"ap-southeast-1": {
+				"Base": "ami-96bb90c4"
+			},
+			"ap-southeast-2": {
+				"Base": "ami-fd9cecc7"
+			},
+			"sa-east-1": {
+				"Base": "ami-af9925b2"
+			}
+		},
+
+		"Region": {
+			"ap-northeast-1": {
+				"RegionName": "tokyo",
+				"AvailabilityZone1": "ap-northeast-1a",
+				"AvailabilityZone2": "ap-northeast-1c",
+				"S3Endpoint": "s3-ap-northeast-1.amazonaws.com",
+				"BucketStacks": "stacks-tokyo-demo",
+				"BucketBinaries": "binaries-tokyo-demo",
+				"BucketScripts": "scripts-tokyo-demo",
+				"BucketKeys": "keys-tokyo-demo"
+			},
+			"ap-southeast-2": {
+				"RegionName": "sydney",
+				"AvailabilityZone1": "ap-southeast-1a",
+				"AvailabilityZone2": "ap-southeast-1b",
+				"S3Endpoint": "s3-ap-southeast-2.amazonaws.com",
+				"BucketStacks": "stacks-tokyo-demo",
+				"BucketBinaries": "binaries-tokyo-demo",
+				"BucketScripts": "scripts-tokyo-demo",
+				"BucketKeys": "keys-tokyo-demo"
+			}
+		}
+	},
+
+	"Conditions": {
+		"CreateNatGateway": { "Fn::Equals": [ { "Ref": "CreateNatGateway" }, "yes" ] },
+		"CreateScmCluster": { "Fn::Equals": [ { "Ref": "CreateScmCluster" }, "yes" ] },
+		"CreateBuildCluster": { "Fn::Equals": [ { "Ref": "CreateBuildCluster" }, "yes" ] },
+		"CreateRepoCluster": { "Fn::Equals": [ { "Ref": "CreateRepoCluster" }, "yes" ] },
+		"CreateWikiCluster": { "Fn::Equals": [ { "Ref": "CreateWikiCluster" }, "yes" ] },
+		"CreateVpnSvr": { "Fn::Equals": [ { "Ref": "CreateVpnSvr" }, "yes" ] },
+		"CreateAppSvr": { "Fn::Or": [ { "Condition": "CreateScmCluster" }, { "Condition": "CreateBuildCluster"}, { "Condition": "CreateRepoCluster" }, { "Condition": "CreateWikiCluster"} ] },
+		"IsScmClusterPublic": { "Fn::Equals": [ { "Ref": "IsScmClusterPublic" }, "yes" ] }
+	},
+
+	"Resources": {
+
+		"VpcCore": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "/", [ "https:/", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketStacks" ] }, "basesys-stack/vpc/demo-vpc-core.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"CompanyName": { "Ref": "CompanyName" },
+					"AvailabilityZone1": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "AvailabilityZone1" ] },
+					"AvailabilityZone2": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "AvailabilityZone2" ] },
+					"AllDestinationCidrBlock": { "Ref": "AllDestinationCidrBlock" },
+					"BaseAmi": { "Fn::FindInMap": [ "Ami", { "Ref": "AWS::Region" }, "Base" ] },
+					"BucketScripts": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketScripts" ] },
+					"BucketBinaries": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketBinaries" ] },
+					"BucketStacks": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketStacks" ] },
+					"BucketKeys": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketKeys" ] },
+					"CriticalAlertEmail": { "Ref": "CriticalAlertEmail" },
+					"CreateScmCluster": { "Ref": "CreateScmCluster" },
+					"CreateBuildCluster": { "Ref": "CreateBuildCluster" },
+					"CreateRepoCluster": { "Ref": "CreateRepoCluster" },
+					"CreateWikiCluster": { "Ref": "CreateWikiCluster" },
+					"CreateNatGateway": { "Ref": "CreateNatGateway" },
+					"CreateVpnSvr": { "Ref": "CreateVpnSvr"},
+					"InternalDnsSuffix": { "Ref": "InternalDnsSuffix" },
+					"InternalDnsHostedZoneId": { "Ref": "InternalDnsHostedZoneId" },
+					"PeeredVpcCidr1": { "Ref": "PeeredVpcCidr1" },
+					"PublicRoutingSubnetZone1CidrBlock": { "Ref": "PublicRoutingSubnetZone1CidrBlock" },
+					"PublicRoutingSubnetZone2CidrBlock": { "Ref": "PublicRoutingSubnetZone2CidrBlock" },
+					"PrivateScmSubnetZone1CidrBlock": { "Ref": "PrivateScmSubnetZone1CidrBlock" },
+					"PrivateScmSubnetZone2CidrBlock": { "Ref": "PrivateScmSubnetZone2CidrBlock" },
+					"PrivateBuildSubnetZone1CidrBlock": { "Ref": "PrivateBuildSubnetZone1CidrBlock" },
+					"PrivateBuildSubnetZone2CidrBlock": { "Ref": "PrivateBuildSubnetZone2CidrBlock" },
+					"PrivateRepoSubnetZone1CidrBlock": { "Ref": "PrivateRepoSubnetZone1CidrBlock" },
+					"PrivateRepoSubnetZone2CidrBlock": { "Ref": "PrivateRepoSubnetZone2CidrBlock" },
+					"PrivateWikiSubnetZone1CidrBlock": { "Ref": "PrivateWikiSubnetZone1CidrBlock" },
+					"PrivateWikiSubnetZone2CidrBlock": { "Ref": "PrivateWikiSubnetZone2CidrBlock" },
+					"Region": { "Ref": "Region" },
+					"S3Endpoint": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] },
+					"ScriptPath": { "Fn::Join": [ "/", [ "https:/", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketScripts" ] } ] ] },
+					"StackPath": { "Fn::Join": [ "/", [ "https:/", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketStacks" ] } ] ] },
+					"TimeZone": { "Ref": "TimeZone" },
+					"VpcCidrBlock": { "Ref": "VpcCidrBlock" },
+					"VpnKeyName": { "Fn::FindInMap": [ "Static", "Keys", "VpnInstanceKeyName" ] },
+					"VpnInstanceType": { "Ref": "VpnInstanceType" },
+					"VpnSubnetRange": { "Ref": "VpnSubnetRange" },
+					"VpnPushRoute1": { "Ref": "VpnPushRoute1" },
+					"VpnPushRoute2": { "Ref": "VpnPushRoute2" },
+					"VpnPushRoute3": { "Ref": "VpnPushRoute3" },
+					"VpnSubnetCidr": { "Ref": "VpnSubnetCidr" },
+					"VpnHostname": { "Ref": "VpnHostname" }
+				}
+			}
+		},
+
+		"VpcSecurity": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "/", [ "https:/", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketStacks" ] }, "basesys-stack/vpc/demo-vpc-security.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"VpcId": { "Fn::GetAtt": [ "VpcCore", "Outputs.VpcId" ] },
+					"AllDestinationCidrBlock": { "Ref": "AllDestinationCidrBlock" },
+					"CreateScmCluster": { "Ref": "CreateScmCluster" },
+					"CreateBuildCluster": { "Ref": "CreateBuildCluster" },
+					"CreateRepoCluster": { "Ref": "CreateRepoCluster" },
+					"CreateWikiCluster": { "Ref": "CreateWikiCluster" },
+					"CreateVpnSvr": { "Ref": "CreateVpnSvr"},
+					"SecurityGroupVpn": { "Fn::If": [ "CreateVpnSvr", { "Fn::GetAtt": [ "VpcCore", "Outputs.SecurityGroupVpn" ] }, "" ] },
+					"VpnSubnetCidr": { "Ref": "VpnSubnetCidr" }
+				}
+			}
+		},
+
+		"Apps": {
+			"Type": "AWS::CloudFormation::Stack",
+			"DependsOn": [ "VpcCore", "VpcSecurity" ],
+			"Condition": "CreateAppSvr",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "/", [ "https:/", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketStacks" ] }, "basesys-stack/demo-stack-apps.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"PrivateScmSubnetZone1": { "Fn::GetAtt": [ "VpcCore", "Outputs.PrivateScmSubnetZone1" ] },
+					"PrivateScmSubnetZone2": { "Fn::GetAtt": [ "VpcCore", "Outputs.PrivateScmSubnetZone2" ] },
+					"PrivateBuildSubnetZone1": { "Fn::GetAtt": [ "VpcCore", "Outputs.PrivateBuildSubnetZone1" ] },
+					"PrivateBuildSubnetZone2": { "Fn::GetAtt": [ "VpcCore", "Outputs.PrivateBuildSubnetZone2" ] },
+					"PrivateRepositorySubnetZone1": { "Fn::GetAtt": [ "VpcCore", "Outputs.PrivateRepositorySubnetZone1" ] },
+					"PrivateRepositorySubnetZone2": { "Fn::GetAtt": [ "VpcCore", "Outputs.PrivateRepositorySubnetZone2" ] },
+					"VpcId": { "Fn::GetAtt": [ "VpcCore", "Outputs.VpcId" ] },
+					"SecurityGroupLinuxServer": { "Fn::GetAtt": [ "VpcSecurity", "Outputs.SecurityGroupLinuxServer" ] },
+					"SecurityGroupScmServer": { "Fn::GetAtt": [ "VpcSecurity", "Outputs.SgScmSvr" ] },
+					"SecurityGroupBambooServer": { "Fn::GetAtt": [ "VpcSecurity", "Outputs.SgBuildSvr" ] },
+					"SecurityGroupNexusServer": { "Fn::GetAtt": [ "VpcSecurity", "Outputs.SgRepoSvr" ] },
+					"SecurityGroupConfluenceServer": { "Fn::GetAtt": [ "VpcSecurity", "Outputs.SgWikiSvr" ] },
+					"CompanyName": { "Ref": "CompanyName" },
+					"S3Endpoint": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] },
+					"StackPath": { "Fn::Join": [ "/", [ "https:/", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketStacks" ] } ] ] },
+					"ScriptPath": { "Fn::Join": [ "/", [ "https:/", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketScripts" ] } ] ] },
+					"BinaryPath": { "Fn::Join": [ "/", [ "https:/", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketBinaries" ] } ] ] },
+					"AvailabilityZone1": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "AvailabilityZone1" ] },
+					"AvailabilityZone2": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "AvailabilityZone2" ] },
+					"NotificationEmail": { "Ref": "NotificationEmail" },
+					"BaseAmi": { "Fn::FindInMap": [ "Ami", { "Ref": "AWS::Region" }, "Base" ] },
+					"TimeZone": { "Ref": "TimeZone" },
+					"BucketScripts": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketScripts" ] },
+					"BucketBinaries": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketBinaries" ] },
+					"BucketStacks": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "BucketStacks" ] },
+					"BucketKeys": { "Fn::Join": [ "-", [ { "Ref": "BucketKeysPrefix" }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, { "Ref": "BucketSuffix" } ] ] },
+					"InternalDnsHostedZoneId": { "Fn::If": [ "IsScmClusterPublic", { "Ref": "ExternalDnsHostedZoneId" }, { "Ref": "InternalDnsHostedZoneId" } ] },
+					"InternalDnsSuffix": { "Fn::If": [ "IsScmClusterPublic", { "Ref": "ExternalDnsSuffix" }, { "Ref": "InternalDnsSuffix" } ] },
+					"EnableSsl": { "Ref": "EnableSsl" },
+					"KeyNameScm": { "Fn::FindInMap": [ "Static", "Keys", "ScmInstanceKeyName" ] },
+					"KeyNameBamboo": { "Fn::FindInMap": [ "Static", "Keys", "BuildInstanceKeyName" ] },
+					"KeyNameNexus": { "Fn::FindInMap": [ "Static", "Keys", "RepoInstanceKeyName" ] },
+					"KeyNameConfluence": { "Fn::FindInMap": [ "Static", "Keys", "WikiInstanceKeyName" ] },
+					"CreateScmCluster": { "Ref": "CreateScmCluster" },
+					"CreateBambooCluster": { "Ref": "CreateBuildCluster" },
+					"CreateConfluenceCluster": { "Ref": "CreateWikiCluster" },
+					"CreateNexusCluster": { "Ref": "CreateRepoCluster" },
+					"ScmInstanceType": { "Ref": "ScmInstanceType" },
+					"BambooInstanceType": { "Ref": "BuildInstanceType" },
+					"NexusInstanceType": { "Ref": "RepoInstanceType" },
+					"ScmHostname": { "Ref": "ScmHostname" },
+					"ScmVersion": { "Ref": "ScmVersion" },
+					"ScmDatabasePassword": { "Ref": "ScmDatabasePassword" },
+					"ScmDataVolume": { "Ref": "ScmDataVolume" },
+					"BambooHostname": { "Ref": "BuildHostname" },
+					"BambooVersion": { "Ref": "BuildVersion" },
+					"BambooDatabasePassword": { "Ref": "BuildDatabasePassword" },
+					"BambooDataVolume": { "Ref": "BuildDataVolume" },
+					"NexusHostname": { "Ref": "RepoHostname" },
+					"NexusVersion": { "Ref": "RepoVersion" },
+					"NexusDataVolume": { "Ref": "RepoDataVolume" },
+					"SingleZonePreference": { "Ref": "SingleZonePreference" },
+					"ConfluenceInstanceType": { "Ref": "WikiInstanceType" },
+					"ConfluenceHostname": { "Ref": "WikiHostname" },
+					"ConfluenceVersion": { "Ref": "WikiVersion" },
+					"ConfluenceDatabasePassword": { "Ref": "WikiDatabasePassword" },
+					"ConfluenceDataVolume": { "Ref": "WikiDataVolume" }
+				}
+			}
+		}
+	},
+
+	"Outputs": {
+		"VpcId": {
+			"Description": "Vpc ID",
+			"Value": { "Fn::GetAtt": [ "VpcCore", "Outputs.VpcId" ] }
+		},
+
+		"NatGateway": {
+			"Description": "NatGateway ID",
+			"Value": { "Fn::If": [ "CreateNatGateway", { "Fn::GetAtt": [ "VpcCore", "Outputs.InternetGatewayRouteTableZone2" ] }, "" ] }
+		},
+
+		"InternetGatewayRouteTableZone1": {
+			"Description": "Route table used by public subnets in zone1",
+			"Value": { "Fn::GetAtt": [ "VpcCore", "Outputs.InternetGatewayRouteTableZone1" ] }
+		},
+
+		"InternetGatewayRouteTableZone2": {
+			"Description": "Route table used by public subnets in zone2",
+			"Value": { "Fn::GetAtt": [ "VpcCore", "Outputs.InternetGatewayRouteTableZone2" ] }
+		},
+
+		"PrivateRouteTableZone1": {
+			"Description": "Route table used by private subnets in zone 1",
+			"Value": { "Fn::GetAtt": [ "VpcCore", "Outputs.PrivateRouteTableZone1" ] }
+		},
+
+		"PrivateRouteTableZone2": {
+			"Description": "Route table used by private subnets in zone 2",
+			"Value": { "Fn::GetAtt": [ "VpcCore", "Outputs.PrivateRouteTableZone2" ] }
+		},
+
+		"SgBuildSvr": {
+			"Description": "Security group associated with build servers.",
+			"Value": { "Fn::If": [ "CreateBuildCluster", { "Fn::GetAtt": [ "VpcSecurity", "Outputs.SgBuildSvr" ] }, "" ] }
+		},
+
+		"SecurityGroupVpn": {
+			"Description": "Security Group for VPN instances",
+			"Value": { "Fn::If": [ "CreateVpnSvr", { "Fn::GetAtt": [ "VpcCore", "Outputs.SecurityGroupVpn" ] }, "" ] }
+		},
+
+		"BuildSvrLaunchConfig": {
+			"Description": "My Launch Configuration ID For Build Server Cluster",
+			"Value": { "Fn::If": [ "CreateBuildCluster", { "Fn::GetAtt": [ "Apps", "Outputs.BuildSvrLaunchConfig" ] }, "" ] }
+		},
+
+		"BuildSvrASGroup": {
+			"Description": "My AutoScaling Group for Build Server Cluster",
+			"Value": { "Fn::If": [ "CreateBuildCluster", { "Fn::GetAtt": [ "Apps", "Outputs.BuildSvrASGroup"] }, "" ] }
+		},
+
+		"BuildSvrRole": {
+			"Description": "IAM Role ID for Build Server",
+			"Value": { "Fn::If": [ "CreateBuildCluster", { "Fn::GetAtt": [ "Apps", "Outputs.BuildSvrRole" ] }, "" ] }
+		},
+
+		"BuildSvrInstanceProfile": {
+			"Description": "IAM Instance Profile ID for Build Server",
+			"Value": { "Fn::If": [ "CreateBuildCluster", { "Fn::GetAtt": [ "Apps", "Outputs.BuildSvrInstanceProfile" ] }, "" ] }
+		},
+
+		"BuildSvrSnsTopic": {
+			"Description": "Sns Topic for Build Server",
+			"Value": { "Fn::If": [ "CreateBuildCluster", {  "Fn::GetAtt": [ "Apps", "Outputs.BuildSvrSnsTopic" ] }, "" ] }
+		}
+	}
+}

@@ -1,0 +1,33 @@
+{
+	"AllDestinationCidrBlock": "0.0.0.0/0",
+	"Region": "ap-northeast-1",
+	"S3Region": "ap-northeast-1",
+
+	"OfficeSubnetCidr1": "10.0.10.0/24",
+	"OfficeSubnetCidr2": "10.0.11.0/24",
+	"OfficeSubnetCidr3": "",
+
+	"PeeredVpcCidr1": "10.20.0.0/16",
+	"PeeredVpcCidr2": "10.21.0.0/16",
+	"PeeredVpcCidr3": "10.22.0.0/16",
+
+	"VpcCidrBlock": "10.20.0.0/16",
+	"PublicRoutingSubnetZone1CidrBlock": "10.20.0.0/28",
+	"PublicRoutingSubnetZone2CidrBlock": "10.20.0.16/28",
+	"PrivateScmSubnetZone1CidrBlock": "10.20.1.0/28",
+	"PrivateScmSubnetZone2CidrBlock": "10.20.1.16/28",
+	"PrivateBuildSubnetZone1CidrBlock": "10.20.1.64/28",
+	"PrivateBuildSubnetZone2CidrBlock": "10.20.1.80/28",
+	"PrivateRepoSubnetZone1CidrBlock": "10.20.1.128/28",
+	"PrivateRepoSubnetZone2CidrBlock": "10.20.1.144/28",
+	"PrivateWikiSubnetZone1CidrBlock": "10.20.1.160/28",
+	"PrivateWikiSubnetZone2CidrBlock": "10.20.1.176/28",
+
+	"VpnSubnetRange": "172.30.0.0 255.255.255.0",
+	"VpnSubnetCidr": "172.30.0.0/24",
+	"VpnPushRoute1": "10.22.0.0 255.255.0.0",
+	"VpnPushRoute2": "10.20.0.0 255.255.0.0",
+	"VpnPushRoute3": "10.21.0.0 255.255.0.0",
+
+	"NexusSubnetCidr": "10.22.1.64/27"
+}

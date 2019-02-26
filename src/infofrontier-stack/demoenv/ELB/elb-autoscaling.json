@@ -1,0 +1,524 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+
+    "Parameters": {
+
+      "Target": {
+        "Description": "Deployment target.",
+        "Type": "String",
+        "AllowedValues": [ "frontendintegration", "frontendproduction", "frontend" ]
+      },
+
+      "FrontEndInstanceType": {
+        "Description": "Instance Type of Front End ELB",
+        "Type": "String"
+      },
+
+      "NotificationEmail": {
+        "Description": "EMail address to notify if there are any scaling operations",
+        "Type": "String",
+        "Default": "wujianhua@outlook.jp",
+        "AllowedPattern": "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)",
+        "ConstraintDescription": "must be a valid email address."
+      },
+
+      "AvailabilityZone1": {
+  			"Description": "Availability zone 1.",
+  			"Type": "String"
+  		},
+
+  		"AvailabilityZone2": {
+  			"Description": "Availability zone 2.",
+  			"Type": "String"
+  		},
+
+  		"PublicApplicationSubnetZone1": {
+  			"Description": "Public application subnet in Availability Zone 1.",
+  			"Type": "String"
+  		},
+
+  		"PublicApplicationSubnetZone2": {
+  			"Description": "Public application subnet in Availability Zone 2.",
+  			"Type": "String"
+  		},
+
+  		"PrivateApplicationSubnetZone1": {
+  			"Description": "Private application subnet in Availability Zone 1.",
+  			"Type": "String"
+  		},
+
+  		"PrivateApplicationSubnetZone2": {
+  			"Description": "Private application subnet in Availability Zone 2.",
+  			"Type": "String"
+  		},
+
+  		"FrontEndELBSG": {
+  			"Description": "Security group that is common to all accessible linux servers.",
+  			"Type": "String"
+  		},
+
+  		"FrontEndNginxSG": {
+  			"Description": "Security group for single instance InfoFrontier app deployments.",
+  			"Type": "String"
+  		},
+
+  		"FrontEndNginxRole": {
+  			"Description": "IAM Role for InfoFrontier App Single.",
+  			"Type": "String"
+  		},
+
+      "RoleSingle": {
+        "Description": "IAM Role For InfoFrontier App Single",
+        "Type": "String"
+      },
+
+      "ProfileSingle": {
+        "Description": "IAM Profile for InfoFrontier App Single.",
+        "Type": "String"
+      },
+
+  		"FrontEndProfile": {
+  			"Description": "IAM Profile for InfoFrontier App Single.",
+  			"Type": "String"
+  		},
+
+  		"FrontEndSNS": {
+  			"Description": "SNS Topic to be used by InfoFrontier App Single autoscaling.",
+  			"Type": "String"
+  		},
+
+  		"InternalDnsHostedZoneId": {
+  			"Description": "Hosted zone id for internal DNS.",
+  			"Type": "String"
+  		},
+
+  		"InternalDnsSuffix": {
+  			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+  			"Type": "String"
+  		},
+
+  		"NewRelicLicenseKey": {
+  			"Description": "New Relic License Key.",
+  			"Type": "String",
+  			"NoEcho": "true"
+  		},
+
+  		"TimeZone": {
+  			"Description": "Time zone setting for servers.",
+  			"Type": "String"
+  		},
+
+  		"BucketSuffix": {
+  			"Description": "This determines the suffix used for all buckets creates.",
+  			"Type": "String"
+  		},
+
+  		"BucketKeysPrefix": {
+  			"Description": "This determines the prefix used the keys bucket.",
+  			"Type": "String"
+  		},
+
+      "BucketStacksPrefix": {
+  			"Description": "This determines the prefix used the stacks bucket.",
+  			"Type": "String"
+  		},
+
+  		"BucketScriptsPrefix": {
+  			"Description": "This determines the prefix used the scripts bucket.",
+  			"Type": "String"
+  		},
+
+      "RefId": {
+        "Description": "Reference id. This is usually the jira reference.",
+        "Type": "String"
+      },
+
+      "SecurityGroupLinuxServer": {
+			"Description": "Security group that is common to all accessible linux servers.",
+			"Type": "String"
+		},
+
+		"SecurityGroupInfoFrontierAppSingle": {
+			"Description": "Security group for single instance InfoFrontier app deployments.",
+			"Type": "String"
+		}
+
+    },
+
+    "Mappings": {
+
+      "Static": {
+
+  			"Final": {
+
+  				"EnvrionmentName": "frontend"
+  			},
+
+  			"Keys": {
+
+  				"NatInstanceKeyName": "integration-app-InfoFrontier-single"
+  			}
+  		},
+
+      "Ami": {
+
+        "us-east-1": {
+          "Base": "ami-146e2a7c"
+        },
+        "us-west-1": {
+          "Base": "ami-42908907"
+        },
+        "us-west-2": {
+          "Base": "ami-dfc39aef"
+        },
+        "eu-west-1": {
+          "Base": "ami-9d23aeea"
+        },
+        "eu-central-1": {
+          "Base": "ami-04003319"
+        },
+        "ap-northeast-1": {
+          "Base": "ami-18869819"
+        },
+        "ap-southeast-1": {
+          "Base": "ami-96bb90c4"
+        },
+        "ap-southeast-2": {
+          "Base": "ami-fd9cecc7"
+        },
+        "sa-east-1": {
+          "Base": "ami-af9925b2"
+        }
+      },
+
+      "Region": {
+
+        "us-east-1": {
+          "RegionName": "virginia",
+          "S3Endpoint": "s3.amazonaws.com"
+        },
+        "us-west-1": {
+          "RegionName": "california",
+          "S3Endpoint": "s3.amazonaws.com"
+        },
+        "us-west-2": {
+          "RegionName": "oregon",
+          "S3Endpoint": "s3.amazonaws.com"
+        },
+        "eu-west-1": {
+          "RegionName": "ireland",
+          "S3Endpoint": "s3-eu-west-1.amazonaws.com"
+        },
+        "eu-central-1": {
+          "RegionName": "frankfurt",
+          "S3Endpoint": "s3-eu-central-1.amazonaws.com"
+        },
+        "ap-northeast-1": {
+          "RegionName": "japan",
+          "S3Endpoint": "s3-ap-northeast-1.amazonaws.com"
+        },
+        "ap-southeast-1": {
+          "RegionName": "singapore",
+          "S3Endpoint": "s3-ap-southeast-1.amazonaws.com"
+        },
+        "ap-southeast-2": {
+          "RegionName": "sydney",
+          "S3Endpoint": "s3-ap-southeast-2.amazonaws.com"
+        },
+        "sa-east-1": {
+          "RegionName": "brazil",
+          "S3Endpoint": "s3-sa-east-1.amazonaws.com"
+        }
+      }
+    },
+
+  "Resources": {
+
+    "FrontEndNotification": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "Subscription": [{
+          "Endpoint": {
+            "Ref": "NotificationEmail"
+          },
+          "Protocol": "email"
+        }]
+      }
+    },
+
+    "FrontEndServerFarm": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "Scheme": "internal",
+        "Subnets": [
+          {"Ref": "PrivateApplicationSubnetZone1"},
+          { "Ref": "PrivateApplicationSubnetZone2"}
+          ],
+        "HealthCheck": {
+          "HealthyThreshold": "3",
+          "Interval": "30",
+          "Target": "HTTPS:443/",
+          "Timeout": "5",
+          "UnhealthyThreshold": "2"
+        },
+        "ConnectionDrainingPolicy": {
+          "Enabled": "true",
+          "Timeout": "300"
+        },
+        "ConnectionSettings": {
+          "IdleTimeout": "60"
+        },
+        "CrossZone": "true",
+        "SecurityGroups": [
+          { "Ref": "FrontEndELBSG" }
+          ],
+          "Listeners": [ {
+  						"LoadBalancerPort": "80",
+  						"Protocol": "HTTP",
+  						"InstancePort": "80",
+  						"InstanceProtocol": "HTTP"
+  					}, {
+  						"LoadBalancerPort": "443",
+  						"Protocol": "HTTPS",
+  						"InstancePort": "443",
+  						"InstanceProtocol": "HTTPS",
+  						"SSLCertificateId": {  "Fn::Join": [ "", [ "arn:aws:iam::", { "Ref": "AWS::AccountId" }, ":server-certificate/star_infofrontier_org" ] ] }
+  					}
+  				]
+      }
+    },
+
+    "FrontEndScalingGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "AvailabilityZones": [
+					{ "Ref": "AvailabilityZone1" },
+					{ "Ref": "AvailabilityZone2" }
+				],
+        "Cooldown": "300",
+        "DesiredCapacity": "1",
+        "HealthCheckGracePeriod": "300",
+        "HealthCheckType": "EC2",
+        "MaxSize": "3",
+        "MinSize": "1",
+        "VPCZoneIdentifier": [
+					{ "Ref": "PrivateApplicationSubnetZone1" },
+					{ "Ref": "PrivateApplicationSubnetZone2" }
+				],
+        "NotificationConfigurations": [{
+          "TopicARN": {
+            "Ref": "FrontEndNotification"
+          },
+          "NotificationTypes": [
+            "autoscaling:EC2_INSTANCE_LAUNCH",
+            "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
+            "autoscaling:EC2_INSTANCE_TERMINATE",
+            "autoscaling:EC2_INSTANCE_TERMINATE_ERROR"
+          ]
+        }],
+        "LaunchConfigurationName": {
+          "Ref": "FrontEndLaunchConfiguration2"
+        },
+        "LoadBalancerNames": [{
+          "Ref": "FrontEndServerFarm"
+        }],
+        "TerminationPolicies": [
+          "Default"
+        ],
+        "Tags": [
+					{ "Key": "Name", "Value": "FrontEndJianhua", "PropagateAtLaunch": "true"  }
+				]
+      }
+    },
+
+    "FrontEndLaunchConfiguration": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "ImageId": { "Fn::FindInMap": [ "Ami", { "Ref": "AWS::Region" }, "Base" ] },
+        "InstanceType": { "Ref": "FrontEndInstanceType" }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Authentication": {
+					"BucketAuth": {
+						"type": "S3",
+						"roleName": { "Ref": "FrontEndNginxRole" },
+						"buckets": [
+							{ "Fn::Join": [ "", [ { "Ref": "BucketKeysPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" } ] ] },
+							{ "Fn::Join": [ "", [ { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" } ] ] }
+						]
+					}
+				},
+
+        "AWS::CloudFormation::Init": {
+          "configSets" : {
+            "default": [ "time", "host", "dns", "nginx", "newrelic-repo", "newrelic" ]
+          },
+
+          "time": {
+            "files": {
+              "/etc/sysconfig/clock": {
+                "content": { "Fn::Join": [ "", [ "ZONE=\"", { "Ref": "TimeZone" }, "\"\n", "UTC=true\n" ] ] },
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "1-localtime": {
+                "command": "rm -rf /etc/localtime"
+              },
+              "2-localtime": {
+                "command": { "Fn::Join": [ "", [ "ln -s /usr/share/zoneinfo/", { "Ref": "TimeZone" }, " /etc/localtime" ] ] }
+              }
+            }
+          },
+
+          "host": {
+            "files": {
+              "/opt/cw/host/set-hostname.sh": {
+                "source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/host/set-hostname-single.sh" ] ] },
+                "mode": "000744",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "set-hostname": {
+                "command": { "Fn::Join": [ "", [ "/opt/cw/host/set-hostname.sh -i -h ", { "Ref": "RefId" }, " -d ", { "Ref": "InternalDnsSuffix" } ] ] }
+              }
+            }
+          },
+
+          "dns": {
+            "files": {
+              "/opt/cw/dns/record.json": {
+                "source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/dns/record.json" ] ] },
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              },
+              "/opt/cw/dns/route53.sh": {
+                "source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/dns/route53.sh" ] ] },
+                "context": {
+                  "region": { "Ref": "AWS::Region" }
+                },
+                "mode": "000744",
+                "owner": "root",
+                "group": "root"
+              },
+              "/opt/cw/dns/route53-cleanup.sh": {
+                "source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/dns/route53-cleanup.sh" ] ] },
+                "context": {
+                  "region": { "Ref": "AWS::Region" },
+                  "hosted_zone_id": { "Ref": "InternalDnsHostedZoneId" }
+                },
+                "mode": "000744",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "1-add-base-dns": {
+                "command": { "Fn::Join": [ "", [ "/opt/cw/dns/route53.sh -sc -e 300 -n ", { "Ref": "RefId" }, ".", { "Ref": "InternalDnsSuffix" }, " -z ", { "Ref": "InternalDnsHostedZoneId" }, " -f /opt/cw/dns/record.json" ] ] }
+              },
+              "2-clean-up-01": {
+                "command": "ln -sf /opt/cw/dns/route53-cleanup.sh /etc/init.d/route53-cleanup"
+              },
+              "3-clean-up-02": {
+                "command": "chkconfig --level 0 route53-cleanup off"
+              }
+            }
+          },
+
+          "nginx": {
+						"packages": {
+							"yum": {
+								"nginx": []
+							}
+						},
+
+            "files": {
+							"/etc/nginx/conf.d/proxy.conf": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/nginx/proxy-frontend-integration.conf" ] ] },
+								"context": {
+									"hostname": { "Ref": "RefId" },
+									"domain": { "Ref": "InternalDnsSuffix" }
+								},
+								"mode": "000640",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"sources": {
+							"/etc/ssl": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketKeysPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/ssl/", { "Ref": "InternalDnsSuffix" }, "/", { "Ref": "InternalDnsSuffix" }, ".tar.gz" ] ] }
+						},
+
+						"services": {
+							"sysvinit": {
+								"nginx": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					},
+
+          "newrelic-repo": {
+            "commands": {
+              "1-install-repo": {
+                "command": "rpm -Uvh http://download.newrelic.com/pub/newrelic/el5/x86_64/newrelic-repo-5-3.noarch.rpm"
+              }
+            }
+          },
+          "newrelic": {
+            "packages": {
+              "yum": {
+                "newrelic-sysmond": []
+              }
+            },
+            "commands": {
+              "1-set-license-key": {
+                "command": { "Fn::Join": [ "", [ "nrsysmond-config --set license_key=", { "Ref": "NewRelicLicenseKey" } ] ] }
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "newrelic-sysmond": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                }
+              }
+            }
+          }
+
+        }
+      }
+    },
+
+    "FrontEndLaunchConfiguration2": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "IamInstanceProfile": { "Ref": "FrontEndProfile" },
+        "AssociatePublicIpAddress": false,
+        "ImageId": { "Fn::FindInMap": [ "Ami", { "Ref": "AWS::Region" }, "Base" ] },
+        "InstanceType": { "Ref": "FrontEndInstanceType" },
+        "KeyName": { "Fn::FindInMap": [ "Static", "Keys", "NatInstanceKeyName" ] },
+        "InstanceMonitoring": "false",
+        "SecurityGroups": [
+          { "Ref": "FrontEndNginxSG" }
+          ],
+        "UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [ "", [
+							"#!/bin/bash\n",
+							"export JAVA_HOME=/usr/lib/jvm/jre\n",
+							"export EC2_HOME=/opt/aws/apitools/ec2\n",
+							"/opt/aws/bin/cfn-init -s ", { "Ref": "AWS::StackName" }, " -r FrontEndLaunchConfiguration --region ", { "Ref": "AWS::Region" }, "\n"
+						] ]
+					}
+				}
+      }
+    }
+  }
+}

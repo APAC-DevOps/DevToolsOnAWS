@@ -1,0 +1,616 @@
+InfoFrontier{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Log Indexer",
+
+	"Parameters": {
+
+		"InstanceType": {
+			"Description": "Instance type to use for log indexer nodes.",
+			"Type": "String"
+		},
+
+		"Target": {
+			"Description": "Deployment target.",
+			"Type": "String",
+			"AllowedValues": [ "integration", "production" ]
+		},
+
+		"Role": {
+			"Description": "IAM Role for Log Indexer.",
+			"Type": "String"
+		},
+
+		"Profile": {
+			"Description": "IAM Profile for Log Indexer.",
+			"Type": "String"
+		},
+
+		"Sns": {
+			"Description": "SNS Topic to be used by Log Indexer autoscaling.",
+			"Type": "String"
+		},
+
+		"AvailabilityZone1": {
+			"Description": "Availability zone 1.",
+			"Type": "String"
+		},
+
+		"AvailabilityZone2": {
+			"Description": "Availability zone 2.",
+			"Type": "String"
+		},
+
+		"PrivateApplicationSubnetZone1": {
+			"Description": "Private application subnet in Availability Zone 1.",
+			"Type": "String"
+		},
+
+		"PrivateApplicationSubnetZone2": {
+			"Description": "Private application subnet in Availability Zone 2.",
+			"Type": "String"
+		},
+
+		"SecurityGroupLinuxServer": {
+			"Description": "Security group that is common to all accessible linux servers.",
+			"Type": "String"
+		},
+
+		"SecurityGroupLogIndexer": {
+			"Description": "Security group that is common to all log indexer servers.",
+			"Type": "String"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for internal DNS.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"TimeZone": {
+			"Description": "Time zone setting for servers.",
+			"Type": "String"
+		},
+
+		"NewRelicLicenseKey": {
+			"Description": "New Relic License Key.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"BucketSuffix": {
+			"Description": "This determines the suffix used for all buckets creates.",
+			"Type": "String"
+		},
+
+		"BucketKeysPrefix": {
+			"Description": "This determines the prefix used the keys bucket.",
+			"Type": "String"
+		},
+
+		"BucketScriptsPrefix": {
+			"Description": "This determines the prefix used the scripts bucket.",
+			"Type": "String"
+		},
+
+		"BucketBinariesPrefix": {
+			"Description": "This determines the prefix used the binaries bucket.",
+			"Type": "String"
+		},
+
+		"VolumeId": {
+			"Description": "Log and index storage volume.",
+			"Type": "String"
+		},
+
+		"SingleZonePreference": {
+			"Description": "Zone preference for ebs bound single instances.",
+			"Type": "String"
+		}
+	},
+
+	"Conditions": {
+		"Zone1": { "Fn::Equals": [ { "Ref": "SingleZonePreference" }, "1" ] }
+	},
+
+	"Mappings": {
+
+		"Static": {
+
+			"Keys": {
+
+				"LogIndexerKeyNameSuffix": "app-logindexer"
+			}
+		},
+
+		"Info": {
+
+			"integration": {
+
+				"VpcName": "INTEGRATION",
+				"Hostname": "logs-int"
+			},
+
+			"production": {
+
+				"VpcName": "PRODUCTION",
+				"Hostname": "logs"
+			}
+		},
+
+		"Ami": {
+
+			"us-east-1": {
+				"Base": "ami-146e2a7c"
+			},
+			"us-west-1": {
+				"Base": "ami-42908907"
+			},
+			"us-west-2": {
+				"Base": "ami-dfc39aef"
+			},
+			"eu-west-1": {
+				"Base": "ami-9d23aeea"
+			},
+			"eu-central-1": {
+				"Base": "ami-04003319"
+			},
+			"ap-northeast-1": {
+				"Base": "ami-18869819"
+			},
+			"ap-southeast-1": {
+				"Base": "ami-96bb90c4"
+			},
+			"ap-southeast-2": {
+				"Base": "ami-fd9cecc7"
+			},
+			"sa-east-1": {
+				"Base": "ami-af9925b2"
+			}
+		},
+
+		"Region": {
+
+			"us-east-1": {
+				"RegionName": "virginia",
+				"S3Endpoint": "s3.amazonaws.com"
+			},
+			"us-west-1": {
+				"RegionName": "california",
+				"S3Endpoint": "s3.amazonaws.com"
+			},
+			"us-west-2": {
+				"RegionName": "oregon",
+				"S3Endpoint": "s3.amazonaws.com"
+			},
+			"eu-west-1": {
+				"RegionName": "ireland",
+				"S3Endpoint": "s3-eu-west-1.amazonaws.com"
+			},
+			"eu-central-1": {
+				"RegionName": "frankfurt",
+				"S3Endpoint": "s3-eu-central-1.amazonaws.com"
+			},
+			"ap-northeast-1": {
+				"RegionName": "japan",
+				"S3Endpoint": "s3-ap-northeast-1.amazonaws.com"
+			},
+			"ap-southeast-1": {
+				"RegionName": "singapore",
+				"S3Endpoint": "s3-ap-southeast-1.amazonaws.com"
+			},
+			"ap-southeast-2": {
+				"RegionName": "sydney",
+				"S3Endpoint": "s3-ap-southeast-2.amazonaws.com"
+			},
+			"sa-east-1": {
+				"RegionName": "brazil",
+				"S3Endpoint": "s3-sa-east-1.amazonaws.com"
+			}
+		}
+	},
+
+	"Resources": {
+
+		"Metadata": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Properties": {
+				"ImageId": { "Fn::FindInMap": [ "Ami", { "Ref": "AWS::Region" }, "Base" ] },
+				"InstanceType": { "Ref": "InstanceType" }
+			},
+			"Metadata": {
+				"AWS::CloudFormation::Authentication": {
+					"BucketAuth": {
+						"type": "S3",
+						"roleName": { "Ref": "Role" },
+						"buckets": [
+							{ "Fn::Join": [ "-", [ { "Ref": "BucketKeysPrefix" }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, { "Ref": "BucketSuffix" } ] ] },
+							{ "Fn::Join": [ "-", [ { "Ref": "BucketScriptsPrefix" }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, { "Ref": "BucketSuffix" } ] ] },
+							{ "Fn::Join": [ "-", [ { "Ref": "BucketBinariesPrefix" }, { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, { "Ref": "BucketSuffix" } ] ] }
+						]
+					}
+				},
+				"AWS::CloudFormation::Init": {
+					"configSets": {
+						"default": [ "time", "host", "dns", "ebs", "java", "nginx", "elasticsearch-install", "elasticsearch-config", "kibana-setup", "kibana-install", "logstash-install", "logstash-setup", "newrelic-repo", "newrelic" ]
+					},
+					"time": {
+						"files": {
+							"/etc/sysconfig/clock": {
+								"content": { "Fn::Join": [ "", [ "ZONE=\"", { "Ref": "TimeZone" }, "\"\n", "UTC=true\n" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-localtime": {
+								"command": "rm -rf /etc/localtime"
+							},
+							"2-localtime": {
+								"command": { "Fn::Join": [ "", [ "ln -s /usr/share/zoneinfo/", { "Ref": "TimeZone" }, " /etc/localtime" ] ] }
+							}
+						}
+					},
+					"host": {
+						"files": {
+							"/opt/looopr/host/set-hostname.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/host/set-hostname.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"set-hostname": {
+								"command": { "Fn::Join": [ "", [ "/opt/looopr/host/set-hostname.sh -i -h ", { "Fn::FindInMap": [ "Info", { "Ref": "Target" }, "Hostname" ] }, " -d ", { "Ref": "InternalDnsSuffix" } ] ] }
+							}
+						}
+					},
+					"dns": {
+						"files": {
+							"/opt/looopr/dns/record.json": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/dns/record.json" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/looopr/dns/route53.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/dns/route53.sh" ] ] },
+								"context": {
+									"region": { "Ref": "AWS::Region" }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/looopr/dns/route53-cleanup.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/dns/route53-cleanup.sh" ] ] },
+								"context": {
+									"region": { "Ref": "AWS::Region" },
+									"hosted_zone_id": { "Ref": "InternalDnsHostedZoneId" }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-add-base-dns": {
+								"command": { "Fn::Join": [ "", [ "/opt/looopr/dns/route53.sh -sc -e 300 -n ", { "Fn::FindInMap": [ "Info", { "Ref": "Target" }, "Hostname" ] }, ".", { "Ref": "InternalDnsSuffix" }, " -z ", { "Ref": "InternalDnsHostedZoneId" }, " -f /opt/looopr/dns/record.json" ] ] }
+							},
+							"2-clean-up-01": {
+								"command": "ln -sf /opt/looopr/dns/route53-cleanup.sh /etc/init.d/route53-cleanup"
+							},
+							"3-clean-up-02": {
+								"command": "chkconfig --level 0 route53-cleanup off"
+							}
+						}
+					},
+					"ebs": {
+						"files": {
+							"/opt/cw/ebs/ebs-attach.sh": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/ebs/ebs-attach.sh" ] ] },
+								"context": {
+									"region": { "Ref": "AWS::Region" }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"attach": {
+								"command": { "Fn::Join": [ "", [ "/opt/cw/ebs/ebs-attach.sh -v ", { "Ref": "VolumeId" }, " -m /data -d /dev/xvdf -p /dev/xvdf1 -t ext4 -f" ] ] }
+							}
+						}
+					},
+					"java": {
+						"files": {
+							"/opt/looopr/java/jdk-8u40-linux-x64.rpm": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketBinariesPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/libraries/java/jdk-8u40-linux-x64.rpm" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-install-java": {
+								"command": "rpm -ivh /opt/looopr/java/jdk-8u40-linux-x64.rpm"
+							}
+						}
+					},
+					"nginx": {
+						"packages": {
+							"yum": {
+								"nginx": []
+							}
+						},
+						"files": {
+							"/etc/nginx/conf.d/proxy.conf": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/elasticsearch/nginx-integration.conf" ] ] },
+								"context": {
+									"hostname": { "Fn::FindInMap": [ "Info", { "Ref": "Target" }, "Hostname" ] },
+									"domain": { "Ref": "InternalDnsSuffix" },
+									"proxy_pass_port": "5601",
+									"proxy_pass_path": ""
+								},
+								"mode": "000640",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"sources": {
+							"/etc/ssl": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketKeysPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/ssl/", { "Ref": "InternalDnsSuffix" }, "/", { "Ref": "InternalDnsSuffix" }, ".tar.gz" ] ] }
+						},
+						"services": {
+							"sysvinit": {
+								"nginx": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					},
+					"elasticsearch-install": {
+						"files": {
+							"/opt/looopr/elasticsearch/elasticsearch-1.7.0.noarch.rpm": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketBinariesPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/applications/elasticsearch/elasticsearch-1.7.0.noarch.rpm" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-install-elasticsearch": {
+								"command": "rpm -ivh /opt/looopr/elasticsearch/elasticsearch-1.7.0.noarch.rpm"
+							}
+						}
+					},
+					"elasticsearch-config": {
+						"files": {
+							"/etc/elasticsearch/elasticsearch.yml": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/elasticsearch/elasticsearch-integration.yml" ] ] },
+								"context": {
+									"cluster_name": "InfoFrontier"
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/etc/elasticsearch/logging.yml": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/elasticsearch/logging-integration.yml" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-create-data-dir": {
+								"command": "mkdir -p /data/elasticsearch"
+							},
+							"2-set-permissions": {
+								"command": "chown elasticsearch:elasticsearch /data/elasticsearch && chmod 774 /data/elasticsearch"
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"elasticsearch": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					},
+					"kibana-setup": {
+						"commands": {
+							"1-adduser": {
+								"command": "useradd kibana"
+							}
+						}
+					},
+					"kibana-install": {
+						"files": {
+							"/etc/init.d/kibana": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/kibana/kibana.sh" ] ] },
+								"context": {
+									"kibana_dir": "/opt/kibana/kibana-4.1.1-linux-x64"
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/kibana/kibana-4.1.1-linux-x64/config/kibana.yml": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/kibana/kibana-integration.yml" ] ] },
+								"mode": "000644",
+								"owner": "kibana",
+								"group": "kibana"
+							}
+						},
+						"sources": {
+							"/opt/kibana": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketBinariesPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/applications/kibana/kibana-4.1.1-linux-x64.tar.gz" ] ] }
+						},
+						"commands": {
+							"1-setowner": {
+								"command": "chown -R kibana:kibana /opt/kibana"
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"kibana": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					},
+					"logstash-install": {
+						"files": {
+							"/opt/looopr/logstash/logstash-1.5.3-1.noarch.rpm": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketBinariesPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/applications/logstash/logstash-1.5.3-1.noarch.rpm" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-install-logstash": {
+								"command": "rpm -ivh /opt/looopr/logstash/logstash-1.5.3-1.noarch.rpm"
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"logstash": {
+									"enabled": "false",
+									"ensureRunning": "false"
+								}
+							}
+						}
+					},
+					"logstash-setup": {
+						"files": {
+							"/etc/logstash/conf.d/01-all.conf": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/logstash/01-all.conf" ] ] },
+								"context": {
+									"region": { "Ref": "AWS::Region" },
+									"target": { "Ref": "Target" }
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/etc/pki/tls/private/logstash-forwarder.key": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/logstash/logstash-forwarder.key" ] ] },
+								"context": {
+									"region": { "Ref": "AWS::Region" },
+									"target": { "Ref": "Target" }
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/etc/pki/tls/certs/logstash-forwarder.crt": {
+								"source": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketScriptsPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/logstash/logstash-forwarder.crt" ] ] },
+								"context": {
+									"region": { "Ref": "AWS::Region" },
+									"target": { "Ref": "Target" }
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"logstash": {
+									"enabled": "true",
+									"ensureRunning": "true",
+									"files": [ "/etc/logstash/conf.d/01-all.conf"]
+								}
+							}
+						}
+					},
+					"newrelic-repo": {
+						"commands": {
+							"1-install-repo": {
+								"command": "rpm -Uvh http://download.newrelic.com/pub/newrelic/el5/x86_64/newrelic-repo-5-3.noarch.rpm"
+							}
+						}
+					},
+					"newrelic": {
+						"packages": {
+							"yum": {
+								"newrelic-sysmond": []
+							}
+						},
+						"commands": {
+							"1-set-license-key": {
+								"command": { "Fn::Join": [ "", [ "nrsysmond-config --set license_key=", { "Ref": "NewRelicLicenseKey" } ] ] }
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"newrelic-sysmond": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+
+		"LaunchConfig": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Properties": {
+				"IamInstanceProfile": { "Ref": "Profile" },
+				"ImageId": { "Fn::FindInMap": [ "Ami", { "Ref": "AWS::Region" }, "Base" ] },
+				"InstanceType": { "Ref": "InstanceType" },
+				"InstanceMonitoring": "false",
+				"KeyName": "integration-app-InfoFrontier-single",
+				"SecurityGroups": [
+					{ "Ref": "SecurityGroupLinuxServer" },
+					{ "Ref": "SecurityGroupLogIndexer" }
+				],
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [ "", [
+							"#!/bin/bash\n",
+							"export JAVA_HOME=/usr/lib/jvm/jre\n",
+							"export EC2_HOME=/opt/aws/apitools/ec2\n",
+							"/opt/aws/bin/cfn-init -s ", { "Ref": "AWS::StackName" }, " -r Metadata --region ", { "Ref": "AWS::Region" }, "\n"
+						] ]
+					}
+				}
+			}
+		},
+
+		"AutoscalingGroup": {
+			"Type": "AWS::AutoScaling::AutoScalingGroup",
+			"Properties": {
+				"AvailabilityZones": { "Fn::If": [ "Zone1", [ { "Ref": "AvailabilityZone1" } ], [ { "Ref": "AvailabilityZone2" } ] ] },
+				"LaunchConfigurationName": { "Ref": "LaunchConfig" },
+				"DesiredCapacity": "1",
+				"MaxSize": "1",
+				"MinSize": "1",
+				"NotificationConfiguration": {
+					"TopicARN": { "Ref": "Sns" },
+					"NotificationTypes": [ "autoscaling:EC2_INSTANCE_LAUNCH", "autoscaling:EC2_INSTANCE_LAUNCH_ERROR", "autoscaling:EC2_INSTANCE_TERMINATE", "autoscaling:EC2_INSTANCE_TERMINATE_ERROR" ]
+				},
+				"VPCZoneIdentifier": { "Fn::If": [ "Zone1", [ { "Ref": "PrivateApplicationSubnetZone1" } ], [ { "Ref": "PrivateApplicationSubnetZone2" } ] ] },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Fn::Join": [ " ", [ { "Fn::FindInMap": [ "Info", { "Ref": "Target" }, "VpcName" ] } ] ] }, "Log Indexer" ] ] }, "PropagateAtLaunch": "true" },
+					{ "Key": "Role", "Value": "logindexer", "PropagateAtLaunch": "true" },
+					{ "Key": "Segment", "Value": "app", "PropagateAtLaunch": "true" },
+					{ "Key": "Sector", "Value": "private", "PropagateAtLaunch": "true" },
+					{ "Key": "Vpc", "Value": { "Fn::Join": [ " ", [ { "Fn::FindInMap": [ "Info", { "Ref": "Target" }, "VpcName" ] } ] ] }, "PropagateAtLaunch": "true" }
+				]
+			}
+		}
+	}
+}

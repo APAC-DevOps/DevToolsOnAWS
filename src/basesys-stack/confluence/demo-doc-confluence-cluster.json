@@ -1,0 +1,526 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "DevOps Demo Confluence Cluster",
+
+	"Parameters": {
+
+		"IamRole": {
+			"Description": "IAM role used by the instances.",
+			"Type": "String"
+		},
+
+		"IamProfile": {
+			"Description": "IAM profile used by the instances.",
+			"Type": "String"
+		},
+
+		"SecurityGroupLinuxServer": {
+			"Description": "Security group that is common to all accessible linux servers.",
+			"Type": "String"
+		},
+
+		"SecurityGroupAppServer": {
+			"Description": "Application specific security group.",
+			"Type": "String"
+		},
+
+		"SnsTopic": {
+			"Description": "SNS topic used for notifications.",
+			"Type": "String"
+		},
+
+		"InstanceType": {
+			"Description": "Instance type to use for this app.",
+			"Type": "String"
+		},
+
+		"AmiId": {
+			"Description": "AMI to use for the instances.",
+			"Type": "String"
+		},
+
+		"S3Endpoint": {
+			"Description": "S3 endpoint.",
+			"Type": "String"
+		},
+
+		"BucketScripts": {
+			"Description": "Bucket hosting bootstrap scripts.",
+			"Type": "String"
+		},
+
+		"BucketBinaries": {
+			"Description": "Bucket hosting binary files.",
+			"Type": "String"
+		},
+
+		"BucketStacks": {
+			"Description": "Bucket hosting binary files.",
+			"Type": "String"
+		},
+
+		"BucketKeys": {
+			"Description": "Bucket hosting keys.",
+			"Type": "String"
+		},
+
+		"AvailabilityZone1": {
+			"Description": "Availability zone 1",
+			"Type": "String"
+		},
+
+		"AvailabilityZone2": {
+			"Description": "Availability zone 2",
+			"Type": "String"
+		},
+
+		"PrivateSubnetZone1": {
+			"Description": "Private subnet in zone 1 for deploying app instances.",
+			"Type": "String"
+		},
+
+		"PrivateSubnetZone2": {
+			"Description": "Private subnet in zone 2 for deploying app instances.",
+			"Type": "String"
+		},
+
+		"KeyName": {
+			"Description": "Name of the key pair to associate with instances.",
+			"Type": "String"
+		},
+
+		"TimeZone": {
+			"Description": "Time zone setting for servers.",
+			"Type": "String"
+		},
+
+		"ScriptPath": {
+			"Description": "Root path for all scripts.",
+			"Type": "String"
+		},
+
+		"BinaryPath": {
+			"Description": "Root path for all binaries.",
+			"Type": "String"
+		},
+
+		"Hostname": {
+			"Description": "Hostname prefix for the instances.",
+			"Type": "String"
+		},
+
+		"Domain": {
+			"Description": "Domain portion of the hostname for the instances.",
+			"Type": "String"
+		},
+
+		"HostedZoneId": {
+			"Description": "Hosted zone id for the domain.",
+			"Type": "String"
+		},
+
+		"EnableSsl": {
+			"Description": "Determines if SSL is enabled for all web apps.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"ConfluenceVersion": {
+			"Description": "Confluence application version.",
+			"Type": "String"
+		},
+
+		"ConfluenceDatabasePassword": {
+			"Description": "Confluence database password.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"ConfluenceDataVolume": {
+			"Description": "Volume id of the Confluence data.",
+			"Type": "String"
+		},
+
+		"SingleZonePreference": {
+			"Description": "Preferred zone for single zone components.",
+			"Type": "String"
+		}
+	},
+
+	"Conditions": {
+		"EnableSsl": { "Fn::Equals": [ { "Ref": "EnableSsl" }, "yes" ] },
+		"Zone1": { "Fn::Equals": [ { "Ref": "SingleZonePreference" }, "1" ] }
+	},
+
+	"Resources": {
+
+		"Metadata": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Properties": {
+				"ImageId": { "Ref": "AmiId" },
+				"InstanceType": { "Ref": "InstanceType" }
+			},
+			"Metadata": {
+				"AWS::CloudFormation::Authentication": {
+					"BucketAuth": {
+						"type": "S3",
+						"roleName": { "Ref": "IamRole" },
+						"buckets": [ { "Ref": "BucketKeys" }, { "Ref": "BucketStacks" }, { "Ref": "BucketScripts" }, { "Ref": "BucketBinaries"} ]
+					}
+				},
+				"AWS::CloudFormation::Init": {
+					"configSets": {
+						"default": { "Fn::If": [ "EnableSsl", [ "time", "host", "ebs", "dns", "nginx-ssl", "postgres", "oraclejdk", "setupdb", "confluence" ], [ "time", "host", "ebs", "dns", "nginx", "postgres", "oraclejdk", "setupdb", "confluence" ] ] }
+					},
+					"time": {
+						"files": {
+							"/etc/sysconfig/clock": {
+								"content": { "Fn::Join": [ "", [ "ZONE=\"", { "Ref": "TimeZone" }, "\"\n", "UTC=true\n" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-localtime": {
+								"command": "rm -rf /etc/localtime"
+							},
+							"2-localtime": {
+								"command": { "Fn::Join": [ "", [ "ln -s /usr/share/zoneinfo/", { "Ref": "TimeZone" }, " /etc/localtime" ] ] }
+							}
+						}
+					},
+					"host": {
+						"files": {
+							"/opt/p7/host/set-hostname.sh": {
+								"source": { "Fn::Join": [ "", [ { "Ref": "ScriptPath" }, "/host/set-hostname.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"set-hostname": {
+								"command": { "Fn::Join": [ "", [ "/opt/p7/host/set-hostname.sh -i -h ", { "Ref": "Hostname" }, " -d ", { "Ref": "Domain" } ] ] }
+							}
+						}
+					},
+					"ebs": {
+						"files": {
+							"/opt/p7/ebs/ebs-attach.sh": {
+								"source": { "Fn::Join": [ "", [ { "Ref": "ScriptPath" }, "/ebs/ebs-attach.sh" ] ] },
+								"context": {
+									"region": { "Ref": "AWS::Region" }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"attach": {
+								"command": { "Fn::Join": [ "", [ "/opt/p7/ebs/ebs-attach.sh -v ", { "Ref": "ConfluenceDataVolume" },  " -m /data -d /dev/xvdf -p /dev/xvdf1 -t ext4 -f" ] ] }
+							}
+						}
+					},
+					"dns": {
+						"files": {
+							"/opt/p7/dns/record.json": {
+								"source": { "Fn::Join" : [ "", [ { "Ref": "ScriptPath" }, "/dns/record.json" ] ] },
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/p7/dns/route53.sh": {
+								"source": { "Fn::Join" : [ "", [ { "Ref": "ScriptPath" }, "/dns/route53.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/p7/dns/route53-cleanup.sh": {
+								"source": { "Fn::Join" : [ "", [ { "Ref": "ScriptPath" }, "/dns/route53-cleanup.sh" ] ] },
+								"context": {
+									"hosted_zone_id": { "Ref": "HostedZoneId" }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"1-update-dns": {
+								"command": { "Fn::Join": [ "", [ "/opt/p7/dns/route53.sh -pc -e 300 -n ", { "Ref": "Hostname" }, ".", { "Ref": "Domain" }, " -z ", { "Ref": "HostedZoneId" }, " -f /opt/p7/dns/record.json" ] ] }
+							},
+							"2-clean-up-01": {
+								"command": "ln -sf /opt/p7/dns/route53-cleanup.sh /etc/init.d/route53-cleanup"
+							},
+							"3-clean-up-02": {
+								"command": "chkconfig --level 0 route53-cleanup off"
+							}
+						}
+					},
+					"nginx-ssl": {
+						"packages": {
+							"yum": {
+								"nginx": []
+							}
+						},
+						"files": {
+							"/etc/nginx/conf.d/proxy.conf": {
+								"source": { "Fn::Join" : [ "", [ { "Ref": "ScriptPath" }, "/nginx/proxy-ssl.conf" ] ] },
+								"context": {
+									"hostname": { "Ref": "Hostname" },
+									"domain": { "Ref": "Domain" },
+									"proxy_pass_port": "8090"
+								},
+								"mode": "000640 ",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"sources": {
+							"/etc/ssl": { "Fn::Join": [ "", [ "https://", { "Ref": "S3Endpoint" }, "/", { "Ref": "BucketKeys" }, "/ssl/", { "Ref": "Domain" }, "/", { "Ref": "Domain" }, ".tar.gz" ] ] }
+						},
+						"services": {
+							"sysvinit": {
+								"nginx": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					},
+					"nginx": {
+						"packages": {
+							"yum": {
+								"nginx": []
+							}
+						},
+						"files": {
+							"/etc/nginx/conf.d/proxy.conf": {
+								"source": { "Fn::Join" : [ "", [ { "Ref": "ScriptPath" }, "/nginx/proxy.conf" ] ] },
+								"context": {
+									"hostname": { "Ref": "Hostname" },
+									"domain": { "Ref": "Domain" },
+									"proxy_pass_port": "8090"
+								},
+								"mode": "000640 ",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"nginx": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					},
+					"oraclejdk": {
+						"files": {
+							"/opt/oraclejdk.rpm": {
+								"source": { "Fn::Join": [ "", [ { "Ref": "BinaryPath" }, "/oraclejdk18/jdk-8u121-linux-x64.rpm"] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"0-install-jdk": {
+								"command": "rpm -ivh oraclejdk.rpm",
+								"cwd": "/opt"
+							}
+						}
+					},
+					"postgres": {
+						"packages": {
+							"yum": {
+								"postgresql95-server": []
+							}
+						},
+						"files": {
+							"/etc/sysconfig/pgsql/postgresql95": {
+								"source": { "Fn::Join" : [ "", [ { "Ref": "ScriptPath" }, "/postgres/postgresql95" ] ] },
+								"context": {
+									"data_dir": "/data/pgsql"
+								},
+								"mode": "000640 ",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/p7/postgres/init-db-95.sh": {
+								"source": { "Fn::Join" : [ "", [ { "Ref": "ScriptPath" }, "/postgres/init-db-95.sh" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/p7/postgres/setup-db.sh": {
+								"source": { "Fn::Join" : [ "", [ { "Ref": "ScriptPath" }, "/postgres/setup-db-95.sh" ] ] },
+								"context": {
+									"password": { "Ref": "ConfluenceDatabasePassword" }
+								},
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/p7/postgres/pg_hba.conf": {
+								"source": { "Fn::Join" : [ "", [ { "Ref": "ScriptPath" }, "/postgres/pg_hba.conf" ] ] },
+								"mode": "000600",
+								"owner": "postgres",
+								"group": "postgres"
+							}
+						},
+						"commands": {
+							"01-initdb": {
+								"command": "/opt/p7/postgres/init-db-95.sh"
+							},
+							"02-makedir": {
+								"command": "mkdir -p /data/pgsql"
+							},
+							"03-puthba": {
+								"command": "cp -f /opt/p7/postgres/pg_hba.conf /data/pgsql/pg_hba.conf"
+							},
+							"04-set-pgdb-permission": {
+								"command": "chown postgres:postgres /data/pgsql"
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"postgresql95": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					},
+					"setupdb": {
+						"commands": {
+							"setupdb": {
+								"command": "/opt/p7/postgres/setup-db.sh -n confluencedb -u confluence"
+							}
+						}
+					},
+
+					"confluence": {
+						"files": {
+							"/opt/atlassian/confluence-binary.tar": {
+								"source": { "Fn::Join": [ "", [ { "Ref": "BinaryPath" }, "/applications/confluence/atlassian-confluence-", { "Ref": "ConfluenceVersion" }, ".tar.gz" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/etc/init.d/confluence": {
+								"source": { "Fn::Join": [ "", [ { "Ref": "ScriptPath" }, "/confluence/confluence" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							},
+							"/opt/p7/confluence/confluence-init.properties": {
+								"source": { "Fn::Join": [ "", [ { "Ref": "ScriptPath" }, "/confluence/confluence-init.properties" ] ] },
+								"mode": "000744",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"00-create-user": {
+								"command": "useradd -c \"confluence runner\" confluence -d /data/confluence-home -s /bin/bash"
+							},
+							"01-set-home-permissions": {
+								"command": "chown -R confluence:confluence /data/confluence-home"
+							},
+							"02-explode-binary": {
+								"command": "/bin/tar -xvf confluence-binary.tar",
+								"cwd": "/opt/atlassian"
+							},
+							"03-remove-binary": {
+								"command": "rm -rf confluence-binary.tar",
+								"cwd": "/opt/atlassian"
+							},
+							"04-link-confluence": {
+								"command": { "Fn::Join": [ "", [ "ln -s /opt/atlassian/atlassian-confluence-", { "Ref": "ConfluenceVersion" }, "/ /opt/atlassian/atlassian-confluence" ] ] }
+							},
+
+							"05-copy-properties-file": {
+								"command": "cp /opt/p7/confluence/confluence-init.properties /opt/atlassian/atlassian-confluence/confluence/WEB-INF/classes/confluence-init.properties"
+							},
+
+							"06-set-installation-permissions": {
+								"command": { "Fn::Join": [ "", [ "chown -R confluence:confluence /opt/atlassian/atlassian-confluence-", { "Ref": "ConfluenceVersion" }  ] ] }
+							},
+							"07-set-link-permissions": {
+								"command": "chown -R confluence:confluence /opt/atlassian/atlassian-confluence"
+							},
+							"08-create-data-dir": {
+								"command": "mkdir -p /data/confluence"
+							},
+							"09-set-data-permissions": {
+								"command": "chown confluence:confluence /data/confluence"
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"confluence": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+
+		"LaunchConfig": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Properties": {
+				"AssociatePublicIpAddress": "true",
+				"IamInstanceProfile": { "Ref": "IamProfile" },
+				"ImageId": { "Ref": "AmiId" },
+				"InstanceType": { "Ref": "InstanceType" },
+				"InstanceMonitoring": "false",
+				"KeyName": { "Ref": "KeyName" },
+				"SecurityGroups": [
+					{ "Ref": "SecurityGroupLinuxServer" },
+					{ "Ref": "SecurityGroupAppServer" }
+				],
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [ "", [
+							"#!/bin/bash\n",
+							"export JAVA_HOME=/usr/java/latest\n",
+							"export EC2_HOME=/opt/aws/apitools/ec2\n",
+							"/opt/aws/bin/cfn-init -s ", { "Ref": "AWS::StackName" }, " -r Metadata --region ", { "Ref": "AWS::Region" }, "\n"
+						] ]
+					}
+				}
+			}
+		},
+
+		"AutoscalingGroup": {
+			"Type": "AWS::AutoScaling::AutoScalingGroup",
+			"Properties": {
+				"AvailabilityZones": { "Fn::If": [ "Zone1", [ { "Ref": "AvailabilityZone1" } ], [ { "Ref": "AvailabilityZone2" } ] ] },
+				"LaunchConfigurationName": { "Ref": "LaunchConfig" },
+				"DesiredCapacity": "1",
+				"MaxSize": "1",
+				"MinSize": "1",
+				"NotificationConfiguration": {
+					"TopicARN": { "Ref": "SnsTopic" },
+					"NotificationTypes": [ "autoscaling:EC2_INSTANCE_LAUNCH", "autoscaling:EC2_INSTANCE_LAUNCH_ERROR", "autoscaling:EC2_INSTANCE_TERMINATE", "autoscaling:EC2_INSTANCE_TERMINATE_ERROR" ]
+				},
+				"VPCZoneIdentifier": { "Fn::If": [ "Zone1", [ { "Ref": "PrivateSubnetZone1" } ], [ { "Ref": "PrivateSubnetZone2" } ] ] },
+				"Tags": [
+					{ "Key": "Name", "Value": "DevOps - Demo - Confluence", "PropagateAtLaunch": "true" },
+					{ "Key": "Role", "Value": "scm", "PropagateAtLaunch": "true" },
+					{ "Key": "Segment", "Value": "app", "PropagateAtLaunch": "true" },
+					{ "Key": "Sector", "Value": "private", "PropagateAtLaunch": "true" },
+					{ "Key": "Vpc", "Value": "InfraVpc", "PropagateAtLaunch": "true" }
+				]
+			}
+		}
+	}
+}

@@ -1,0 +1,378 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "DevOps Demo Bamboo Cluster Launcher ",
+
+	"Parameters": {
+
+		"PrivateSubnetZone1": {
+			"Description": "Private subnet in zone 1 for deploying app instances.",
+			"Type": "String"
+		},
+
+		"PrivateSubnetZone2": {
+			"Description": "Private subnet in zone 2 for deploying app instances.",
+			"Type": "String"
+		},
+
+		"SecurityGroupLinuxServer": {
+			"Description": "Security group that is common to all accessible linux servers.",
+			"Type": "String"
+		},
+
+		"SecurityGroupAppServer": {
+			"Description": "Application specific security group.",
+			"Type": "String"
+		},
+
+		"CompanyName": {
+			"Description": "Name of the company.",
+			"Type": "String"
+		},
+
+		"StackPath": {
+			"Description": "Root path for all stacks.",
+			"Type": "String"
+		},
+
+		"ScriptPath": {
+			"Description": "Root path for all scripts.",
+			"Type": "String"
+		},
+
+		"BinaryPath": {
+			"Description": "Root path for all binaries.",
+			"Type": "String"
+		},
+
+		"AvailabilityZone1": {
+			"Description": "Availability zone 1",
+			"Type": "String"
+		},
+
+		"AvailabilityZone2": {
+			"Description": "Availability zone 2",
+			"Type": "String"
+		},
+
+		"NotificationEmail": {
+			"Description": "This email address will receive all autoscaling event notifications.",
+			"Type": "String",
+			"AllowedPattern": "^[^@]+@[^@]+\\.[^@]+$"
+		},
+
+		"BaseAmi": {
+			"Description": "Base AMI",
+			"Type": "String"
+		},
+
+		"TimeZone": {
+			"Description": "Time zone setting for servers.",
+			"Type": "String"
+		},
+
+		"S3Endpoint": {
+			"Description": "S3 endpoint.",
+			"Type": "String"
+		},
+
+		"BucketScripts": {
+			"Description": "Bucket hosting bootstrap scripts.",
+			"Type": "String"
+		},
+
+		"BucketBinaries": {
+			"Description": "Bucket hosting binary files.",
+			"Type": "String"
+		},
+
+		"BucketStacks": {
+			"Description": "Bucket hosting binary files.",
+			"Type": "String"
+		},
+
+		"BucketKeys": {
+			"Description": "Bucket hosting ssl certs.",
+			"Type": "String"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for internal DNS.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"EnableSsl": {
+			"Description": "Determines if SSL is enabled for all web apps.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"KeyName": {
+			"Description": "Name of the key pair to associate with instances.",
+			"Type": "String"
+		},
+
+		"InstanceType": {
+			"Description": "Instance type to use for this app.",
+			"Type": "String"
+		},
+
+		"Hostname": {
+			"Description": "Hostname prefix for this app.",
+			"Type": "String"
+		},
+
+		"BambooVersion": {
+			"Description": "Bamboo application version.",
+			"Type": "String"
+		},
+
+		"BambooDatabasePassword": {
+			"Description": "Bamboo database password.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"BambooDataVolume": {
+			"Description": "Volume id of the bamboo data.",
+			"Type": "String"
+		},
+
+		"SingleZonePreference": {
+			"Description": "Preferred zone for single zone components.",
+			"Type": "String"
+		},
+
+		"VpcId": {
+			"Description": "VPC Id Value",
+			"Type": "String"
+		}
+	},
+
+	"Conditions": {
+		"EnableSsl": { "Fn::Equals": [ { "Ref": "EnableSsl" }, "yes" ] }
+	},
+
+	"Resources": {
+
+		"Role": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Statement": [ {
+						"Effect": "Allow",
+						"Principal": {
+							"Service": [ "ec2.amazonaws.com" ]
+						},
+						"Action": [ "sts:AssumeRole" ]
+					} ]
+				},
+				"Path": "/app/"
+			}
+		},
+
+		"Profile": {
+			"Type": "AWS::IAM::InstanceProfile",
+			"Properties": {
+				"Path": "/core/",
+				"Roles": [
+					{ "Ref": "Role" }
+				]
+			}
+		},
+
+		"PolicyRoute53": {
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "UpdateRoute53",
+				"PolicyDocument": {
+					"Statement": [ {
+						"Action": [
+							"route53:ChangeResourceRecordSets",
+							"route53:GetChange",
+							"route53:GetHostedZone",
+							"route53:ListHostedZones",
+							"route53:ListResourceRecordSets",
+							"route53:AssociateVPCWithHostedZone"
+						],
+						"Resource": [
+							{ "Fn::Join": [ "/", [ "arn:aws:route53:::hostedzone", { "Ref": "InternalDnsHostedZoneId" } ] ] }
+						],
+						"Effect": "Allow"
+					} ]
+				},
+				"Roles": [
+					{ "Ref": "Role" }
+				]
+			}
+		},
+
+		"PolicyS3SslCerts": {
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "S3SslCerts",
+				"PolicyDocument": {
+					"Statement": [ {
+						"Action": [
+							"s3:ListAllMyBuckets"
+						],
+						"Effect": "Allow",
+						"Resource": [ "arn:aws:s3:::*" ]
+					}, {
+						"Action": [
+							"s3:ListBucket",
+							"s3:GetObject"
+						],
+						"Effect": "Allow",
+						"Resource": [
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketKeys" }, "/ssl/", { "Ref": "InternalDnsSuffix" } ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketKeys" }, "/ssl/", { "Ref": "InternalDnsSuffix" }, "/*" ] ] },
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" } ]]},
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketScripts" }, "/*" ]]},
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketBinaries" } ]]},
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketBinaries" }, "/*" ]]},
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketStacks" } ]]},
+							{ "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "BucketStacks" }, "/*" ]]}
+						]
+					} ]
+				},
+				"Roles": [
+					{ "Ref": "Role" }
+				]
+			}
+		},
+
+		"PolicyAttachVolume": {
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "PolicyAttachVolume",
+				"PolicyDocument": {
+					"Statement": [ {
+						"Effect": "Allow",
+						"Action": [
+							"ec2:AttachVolume",
+							"ec2:DescribeVpcs"
+						],
+						"Resource": [ "*" ]
+					} ]
+				},
+				"Roles": [
+					{ "Ref": "Role" }
+				]
+			}
+		},
+
+		"PolicyVolumeBackup": {
+			"Type": "AWS::IAM::Policy",
+			"Properties": {
+				"PolicyName": "PolicyVolumeBackup",
+				"PolicyDocument": {
+					"Statement": [ {
+						"Effect": "Allow",
+						"Action": [
+							"ec2:CreateTags",
+							"ec2:CopySnapshot",
+							"ec2:CreateSnapshot",
+							"ec2:DeleteSnapshot",
+							"ec2:DescribeSnapshotAttribute",
+							"ec2:DescribeSnapshots",
+							"ec2:DescribeVolumeAttribute",
+							"ec2:DescribeVolumeStatus",
+							"ec2:DescribeVolumes",
+							"ec2:DetachVolume",
+							"ec2:ModifySnapshotAttribute",
+							"ec2:ModifyVolumeAttribute",
+							"ec2:ResetSnapshotAttribute"
+						],
+						"Resource": [ "*" ]
+					} ]
+				},
+				"Roles": [
+					{ "Ref": "Role" }
+				]
+			}
+		},
+
+		"SnsTopic" : {
+			"Type": "AWS::SNS::Topic",
+			"Properties": {
+				"TopicName": "BambooAutoscaling",
+				"DisplayName": { "Fn::Join": [ "", [ { "Ref": "CompanyName" }, " System Alert - Bamboo Server" ] ] },
+				"Subscription": [
+					{ "Endpoint": { "Ref": "NotificationEmail" }, "Protocol": "email" }
+				]
+			}
+		},
+
+		"Cluster": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "/", [ { "Ref": "StackPath" }, "basesys-stack/build/demo-build-bamboo-cluster.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"IamRole": { "Ref": "Role" },
+					"IamProfile": { "Ref": "Profile" },
+					"SecurityGroupLinuxServer": { "Ref": "SecurityGroupLinuxServer" },
+					"SecurityGroupAppServer": { "Ref": "SecurityGroupAppServer" },
+					"SnsTopic": { "Ref": "SnsTopic" },
+					"InstanceType": { "Ref": "InstanceType" },
+					"AmiId": { "Ref": "BaseAmi" },
+					"S3Endpoint": { "Ref": "S3Endpoint" },
+					"BucketScripts": { "Ref": "BucketScripts" },
+					"BucketBinaries": { "Ref": "BucketBinaries" },
+					"BucketStacks": { "Ref": "BucketStacks" },
+					"BucketKeys": { "Ref": "BucketKeys" },
+					"AvailabilityZone1": { "Ref": "AvailabilityZone1" },
+					"AvailabilityZone2": { "Ref": "AvailabilityZone2" },
+					"PrivateSubnetZone1": { "Ref": "PrivateSubnetZone1" },
+					"PrivateSubnetZone2": { "Ref": "PrivateSubnetZone2" },
+					"KeyName": { "Ref": "KeyName" },
+					"TimeZone": { "Ref": "TimeZone" },
+					"ScriptPath": { "Ref": "ScriptPath" },
+					"BinaryPath": { "Ref": "BinaryPath" },
+					"Hostname": { "Ref": "Hostname" },
+					"Domain": { "Ref": "InternalDnsSuffix"},
+					"HostedZoneId": { "Ref": "InternalDnsHostedZoneId" },
+					"EnableSsl": { "Ref": "EnableSsl" },
+					"BambooVersion": { "Ref": "BambooVersion" },
+					"BambooDatabasePassword": { "Ref": "BambooDatabasePassword" },
+					"BambooDataVolume": { "Ref": "BambooDataVolume" },
+					"SingleZonePreference": { "Ref": "SingleZonePreference" },
+					"VpcId": { "Ref": "VpcId" }
+				}
+			}
+		}
+	},
+
+	"Outputs": {
+		"BuildSvrLaunchConfig": {
+			"Description": "My Launch Configuration ID For Build Server Cluster",
+			"Value": { "Fn::GetAtt": [ "Cluster", "Outputs.BuildSvrLaunchConfig"] }
+		},
+
+		"BuildSvrASGroup": {
+			"Description": "My AutoScaling Group for Build Server Cluster",
+			"Value": { "Fn::GetAtt": [ "Cluster", "Outputs.BuildSvrASGroup"] }
+		},
+
+		"BuildSvrRole": {
+			"Description": "IAM Role ID for Build Server",
+			"Value": { "Ref": "Role" }
+		},
+
+		"BuildSvrInstanceProfile": {
+			"Description": "IAM Instance Profile ID for Build Server",
+			"Value": { "Ref": "Profile" }
+		},
+
+		"BuildSvrSnsTopic": {
+			"Description": "Sns Topic for Build Server",
+			"Value": { "Ref": "SnsTopic" }
+		}
+	}
+}

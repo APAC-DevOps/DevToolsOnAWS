@@ -1,0 +1,348 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Front End Security",
+
+	"Parameters": {
+
+		"VpcId": {
+			"Description": "VPC Id",
+			"Type": "String"
+		},
+
+		"SecurityGroupNat": {
+			"Description": "Security Group ID of Nat",
+			"Type": "String"
+		},
+
+		"VpcName": {
+			"Description": "VPC name descriptor.",
+			"Type": "String"
+		},
+
+		"SecurityGroupInfoFrontierAppSingle": {
+			"Description": "NAT security group.",
+			"Type": "String"
+		},
+
+		"OfficeSubnetCidr1": {
+			"Description": "Ofice subnet CIDR 1.",
+			"Type": "String"
+		},
+
+		"OfficeSubnetCidr2": {
+			"Description": "Ofice subnet CIDR 2.",
+			"Type": "String"
+		},
+
+		"OfficeSubnetCidr3": {
+			"Description": "Ofice subnet CIDR 3.",
+			"Type": "String"
+		},
+
+		"VpnSubnetCidr": {
+			"Description": "Vpn subnet range with cidr notation.",
+			"Type": "String"
+		}
+
+	},
+
+	"Conditions": {
+		"CreateOfficeSubnetRule1": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "OfficeSubnetCidr1" }, "" ] } ] },
+		"CreateOfficeSubnetRule2": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "OfficeSubnetCidr2" }, "" ] } ] },
+		"CreateOfficeSubnetRule3": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "OfficeSubnetCidr3" }, "" ] } ] },
+		"CreateVpnSubnetRule": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "VpnSubnetCidr" }, "" ] } ] }
+	},
+
+	"Resources": {
+
+		"FrontEndELBSG": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Security group for Front End ELB.",
+				"SecurityGroupEgress": [ {
+						"IpProtocol": "tcp",
+						"FromPort": "80",
+						"ToPort": "80",
+						"CidrIp": "10.21.16.0/21"
+					}, {
+						"IpProtocol": "tcp",
+						"FromPort": "443",
+						"ToPort": "443",
+						"CidrIp": "10.21.16.0/21"
+					}
+				],
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Front End ELB" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"FrontEndELBSGSSLOfficeCidr1": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateOfficeSubnetRule1",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndELBSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "443",
+				"ToPort": "443",
+				"CidrIp": { "Ref": "OfficeSubnetCidr1" }
+			}
+		},
+
+		"FrontEndELBSGSSLOfficeCidr2": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateOfficeSubnetRule2",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndELBSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "443",
+				"ToPort": "443",
+				"CidrIp": { "Ref": "OfficeSubnetCidr2" }
+			}
+		},
+
+		"FrontEndELBSGSSLOfficeCidr3": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateOfficeSubnetRule3",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndELBSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "443",
+				"ToPort": "443",
+				"CidrIp": { "Ref": "OfficeSubnetCidr3" }
+			}
+		},
+
+		"FrontEndELBSGSSLOfficeCidr3": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateVpnSubnetRule",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndELBSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "443",
+				"ToPort": "443",
+				"CidrIp": { "Ref": "VpnSubnetCidr" }
+			}
+		},
+
+		"FrontEndELBSGSSLOfficeCidr1": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateOfficeSubnetRule1",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndELBSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "80",
+				"ToPort": "80",
+				"CidrIp": { "Ref": "OfficeSubnetCidr1" }
+			}
+		},
+
+		"FrontEndELBSGSSLOfficeCidr2": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateOfficeSubnetRule2",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndELBSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "80",
+				"ToPort": "80",
+				"CidrIp": { "Ref": "OfficeSubnetCidr2" }
+			}
+		},
+
+		"FrontEndELBSGHTTPOfficeCidr3": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateOfficeSubnetRule3",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndELBSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "80",
+				"ToPort": "80",
+				"CidrIp": { "Ref": "OfficeSubnetCidr3" }
+			}
+		},
+
+		"FrontEndELBSGHTTPOfficeCidr3": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateVpnSubnetRule",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndELBSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "80",
+				"ToPort": "80",
+				"CidrIp": { "Ref": "VpnSubnetCidr" }
+			}
+		},
+
+
+		"FrontEndNginxSG": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Security group for Front END Linux Nginx Nodes.",
+				"SecurityGroupIngress": [ {
+						"IpProtocol": "tcp",
+						"FromPort": "80",
+						"ToPort": "80",
+						"SourceSecurityGroupId": { "Ref": "FrontEndELBSG" }
+					}, {
+							"IpProtocol": "tcp",
+							"FromPort": "443",
+							"ToPort": "443",
+							"SourceSecurityGroupId": { "Ref": "FrontEndELBSG" }
+						}
+				],
+				"SecurityGroupEgress": [ {
+						"IpProtocol": "tcp",
+						"FromPort": "80",
+						"ToPort": "80",
+						"SourceSecurityGroupId": { "Ref": "SecurityGroupNat" }
+					}, {
+						"IpProtocol": "tcp",
+						"FromPort": "443",
+						"ToPort": "443",
+						"SourceSecurityGroupId": { "Ref": "SecurityGroupNat" }
+					}, {
+						"IpProtocol": "udp",
+						"FromPort": "123",
+						"ToPort": "123",
+						"SourceSecurityGroupId": { "Ref": "SecurityGroupNat" }
+					}, {
+						"IpProtocol": "udp",
+						"FromPort": "53",
+						"ToPort": "53",
+						"SourceSecurityGroupId": { "Ref": "SecurityGroupNat" }
+					}, {
+						"IpProtocol": "tcp",
+						"FromPort": "443",
+						"ToPort": "443",
+						"SourceSecurityGroupId": { "Ref": "SecurityGroupInfoFrontierAppSingle" }
+					}, {
+						"IpProtocol": "tcp",
+						"FromPort": "80",
+						"ToPort": "80",
+						"SourceSecurityGroupId": { "Ref": "SecurityGroupInfoFrontierAppSingle" }
+					}
+				],
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Front End Nginx Nodes" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"FrontEndNginxSGSSHOfficeCidr1": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateOfficeSubnetRule1",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndNginxSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "22",
+				"ToPort": "22",
+				"CidrIp": { "Ref": "OfficeSubnetCidr1" }
+			}
+		},
+
+		"FrontEndNginxSGSSHOfficeCidr2": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateOfficeSubnetRule2",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndNginxSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "22",
+				"ToPort": "22",
+				"CidrIp": { "Ref": "OfficeSubnetCidr2" }
+			}
+		},
+
+		"FrontEndNginxSGSSHOfficeCidr3": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateOfficeSubnetRule3",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndNginxSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "22",
+				"ToPort": "22",
+				"CidrIp": { "Ref": "OfficeSubnetCidr3" }
+			}
+		},
+
+		"FrontEndNginxSGSSHVPN": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateVpnSubnetRule",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndNginxSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "22",
+				"ToPort": "22",
+				"CidrIp": { "Ref": "VpnSubnetCidr" }
+			}
+		},
+
+		"FrontEndNginxSGICMPOfficeCidr1": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateOfficeSubnetRule1",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndNginxSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "0",
+				"ToPort": "8",
+				"CidrIp": { "Ref": "OfficeSubnetCidr1" }
+			}
+		},
+
+		"FrontEndNginxSGICMPOfficeCidr2": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateOfficeSubnetRule2",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndNginxSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "0",
+				"ToPort": "8",
+				"CidrIp": { "Ref": "OfficeSubnetCidr2" }
+			}
+		},
+
+		"FrontEndNginxSGICMPOfficeCidr3": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateOfficeSubnetRule3",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndNginxSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "0",
+				"ToPort": "8",
+				"CidrIp": { "Ref": "OfficeSubnetCidr3" }
+			}
+		},
+
+		"FrontEndNginxSGICMPVPN": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateVpnSubnetRule",
+			"Properties": {
+				"GroupId": { "Ref": "FrontEndNginxSG" },
+				"IpProtocol": "tcp",
+				"FromPort": "0",
+				"ToPort": "8",
+				"CidrIp": { "Ref": "VpnSubnetCidr" }
+			}
+		}
+
+	},
+
+	"Outputs": {
+
+		"FrontEndELBSG": {
+			"Description": "Security group for front end ELB.",
+			"Value": { "Ref": "FrontEndELBSG" }
+		},
+
+		"FrontEndNginxSG": {
+			"Description": "Security group for front end Nginx Nodes.",
+			"Value": { "Ref": "FrontEndNginxSG" }
+		}
+	}
+}

@@ -1,0 +1,476 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "VPC Components for Demo Env",
+
+	"Parameters": {
+
+		"AvailabilityZone1": {
+			"Description": "Availability zone 1",
+			"Type": "String"
+		},
+
+		"AvailabilityZone2": {
+			"Description": "Availability zone 2",
+			"Type": "String"
+		},
+
+		"BasesysVpcId": {
+			"Description": "VPC ID of Basesys VPC",
+			"Type": "String"
+		},
+
+		"BasesysVpcCidrBlock": {
+			"Description": "CIDR BLOCK of Basesys VPC",
+			"Type": "String"
+		},
+
+		"BaseSysVpcPrivateRouteTableZone1": {
+			"Description": "Route Table ID of The Private Route Table Zone 1 of Basesys Vpc",
+			"Type": "String"
+		},
+
+		"BaseSysVpcPrivateRouteTableZone2": {
+			"Description": "Route Table ID of The Private Route Table Zone 2 of Basesys Vpc",
+			"Type": "String"
+		},
+
+		"CreateBasesysVpcPeering": {
+			"Description": "This determines if Creates VPC Peering to Basesys VPC",
+			"Type": "String"
+		},
+
+		"VpcCidrBlock": {
+			"Description": "Supports only /16. Just provide the first two stanzas.",
+			"Type": "String",
+			"Default": "10.64"
+		},
+
+		"VpnSubnetCidr": {
+			"Description": "VPN subnet CIDR.",
+			"Type": "String"
+		},
+
+		"CriticalAlertEmail": {
+			"Description": "This email address will receive all critical autoscaling event notifications.",
+			"Type": "String",
+			"AllowedPattern": "^[^@]+@[^@]+\\.[^@]+$"
+		},
+
+		"S3Endpoint": {
+			"Description": "S3 endpoint.",
+			"Type": "String"
+		},
+
+		"VpcName": {
+			"Description": "VPC name descriptor.",
+			"Type": "String"
+		},
+
+		"PublicRoutingSubnetZone1CidrBlock": {
+			"Description": "Public Routing Subnet Zone 1 Cidr Block",
+			"Type": "String"
+		},
+
+		"PublicRoutingSubnetZone2CidrBlock": {
+			"Description": "Public Routing Subnet Zone 2 Cidr Block",
+			"Type": "String"
+		},
+
+		"PrivateFrontEndAppSubnetZone1CidrBlock": {
+			"Description": "Private Front End App Subnet Zone 1 Cidr Block",
+			"Type": "String"
+		},
+
+		"PrivateFrontEndAppSubnetZone2CidrBlock": {
+			"Description": "Private Front End App Subnet Zone 2 Cidr Block",
+			"Type": "String"
+		},
+
+		"PrivateBackEndAppSubnetZone1CidrBlock": {
+			"Description": "Private Back End App Subnet Zone 1 Cidr Block",
+			"Type": "String"
+		},
+
+		"PrivateBackEndAppSubnetZone2CidrBlock": {
+			"Description": "Private Back End App Subnet Zone 2 Cidr Block",
+			"Type": "String"
+		}
+
+	},
+
+	"Conditions": {
+		"CreateBasesysVpcPeering": { "Fn::Equals": [ { "Ref": "CreateBasesysVpcPeering" }, "yes" ] }
+	},
+
+
+	"Resources": {
+
+		"Vpc": {
+			"Type": "AWS::EC2::VPC",
+			"Properties": {
+				"CidrBlock": { "Ref": "VpcCidrBlock" },
+				"EnableDnsSupport" : "true",
+    	  "EnableDnsHostnames" : "true",
+				"InstanceTenancy": "default",
+				"Tags": [
+					{ "Key": "Name", "Value": { "Ref": "VpcName" } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"InternetGateway" : {
+			"Type": "AWS::EC2::InternetGateway",
+			"Properties": {
+				"Tags": [
+					{ "Key": "Name", "Value": { "Ref": "VpcName" } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"AttachInternetGateway": {
+			"Type": "AWS::EC2::VPCGatewayAttachment",
+			"Properties": {
+				"VpcId": { "Ref": "Vpc" },
+				"InternetGatewayId": { "Ref": "InternetGateway" }
+			}
+		},
+
+		"VPCPeeringToBasesys": {
+			"Condition": "CreateBasesysVpcPeering",
+			"Type": "AWS::EC2::VPCPeeringConnection",
+			"Properties": {
+				"PeerVpcId": { "Ref": "BasesysVpcId" },
+				"VpcId": { "Ref": "Vpc" }
+			}
+		},
+
+		"NatEip": {
+			"Type": "AWS::EC2::EIP",
+			"Properties": {
+				"Domain": "Vpc"
+			}
+		},
+
+		"NatGateway": {
+			"Type": "AWS::EC2::NatGateway",
+			"DependsOn": "AttachInternetGateway",
+			"Properties": {
+				"AllocationId": { "Fn::GetAtt": [ "NatEip", "AllocationId"]},
+				"SubnetId": { "Ref": "PublicRoutingSubnetZone1"}
+			}
+		},
+
+		"PublicRoutingSubnetZone1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone1" },
+				"VpcId": { "Ref": "Vpc" },
+				"CidrBlock": { "Ref": "PublicRoutingSubnetZone1CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Public Routing Subnet Zone 1" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Sector", "Value": "public" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"PublicRoutingSubnetZone2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone2" },
+				"VpcId": { "Ref": "Vpc" },
+				"CidrBlock": { "Ref": "PublicRoutingSubnetZone2CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Public Routing Subnet Zone 2" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Sector", "Value": "public" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"PrivateFrontEndAppSubnetZone1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone1" },
+				"VpcId": { "Ref": "Vpc" },
+				"CidrBlock": { "Ref": "PrivateFrontEndAppSubnetZone1CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Public Application Subnet Zone 1" ] ] } },
+					{ "Key": "Segment", "Value": "app" },
+					{ "Key": "Sector", "Value": "public" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"PrivateFrontEndAppSubnetZone2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone2" },
+				"VpcId": { "Ref": "Vpc" },
+				"CidrBlock": { "Ref": "PrivateFrontEndAppSubnetZone2CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Public Application Subnet Zone 2" ] ] } },
+					{ "Key": "Segment", "Value": "app" },
+					{ "Key": "Sector", "Value": "public" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"PrivateBackEndAppSubnetZone1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone1" },
+				"VpcId": { "Ref": "Vpc" },
+				"CidrBlock": { "Ref": "PrivateBackEndAppSubnetZone1CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Private Application Subnet Zone 1" ] ] } },
+					{ "Key": "Segment", "Value": "app" },
+					{ "Key": "Sector", "Value": "private" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"PrivateBackEndAppSubnetZone2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"AvailabilityZone": { "Ref": "AvailabilityZone2" },
+				"VpcId": { "Ref": "Vpc" },
+				"CidrBlock": { "Ref": "PrivateBackEndAppSubnetZone2CidrBlock" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Private Application Subnet Zone 2" ] ] } },
+					{ "Key": "Segment", "Value": "app" },
+					{ "Key": "Sector", "Value": "private" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"InternetGatewayRouteTable": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": { "Ref": "Vpc" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Internet Gateway Route Table" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Sector", "Value": "public" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"InternetGatewayRoute": {
+			"Type": "AWS::EC2::Route",
+			"Properties": {
+				"RouteTableId": { "Ref": "InternetGatewayRouteTable" },
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId": { "Ref": "InternetGateway" }
+			}
+		},
+
+		"PublicRoutingSubnetRouteTableAssociationZone1" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": { "Ref": "PublicRoutingSubnetZone1" },
+				"RouteTableId": { "Ref": "InternetGatewayRouteTable" }
+			}
+		},
+
+		"PublicRoutingSubnetRouteTableAssociationZone2" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": { "Ref": "PublicRoutingSubnetZone2" },
+				"RouteTableId": { "Ref": "InternetGatewayRouteTable" }
+			}
+		},
+
+		"PrivateRouteTableZone1": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": { "Ref": "Vpc" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Private Route Table 1" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Sector", "Value": "private" },
+					{ "Key": "RouteType", "Value": "PrivateRouteTable" },
+					{ "Key": "Zone", "Value": "1" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"PrivateRouteTableZone1DefaultRoute": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": "AttachInternetGateway",
+			"Properties": {
+				"RouteTableId": { "Ref": "PrivateRouteTableZone1" },
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId": { "Ref": "InternetGateway" }
+			}
+		},
+
+		"PrivateFrontEndAppSubnetRouteTableAssociationZone1" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": { "Ref": "PrivateFrontEndAppSubnetZone1" },
+				"RouteTableId": { "Ref": "PrivateRouteTableZone1" }
+			}
+		},
+
+		"PrivateBackEndAppSubnetRouteTableAssociationZone1" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": { "Ref": "PrivateBackEndAppSubnetZone1" },
+				"RouteTableId": { "Ref": "PrivateRouteTableZone1" }
+			}
+		},
+
+		"PrivateRouteTableZone2": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": { "Ref": "Vpc" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Private Route Table 2" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Sector", "Value": "private" },
+					{ "Key": "RouteType", "Value": "PrivateRouteTable" },
+					{ "Key": "Zone", "Value": "2" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"PrivateRouteTableZone2DefaultRoute": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": "AttachInternetGateway",
+			"Properties": {
+				"RouteTableId": { "Ref": "PrivateRouteTableZone2" },
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId": { "Ref": "InternetGateway" }
+			}
+		},
+
+		"PrivateFrontEndAppSubnetRouteTableAssociationZone2" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": { "Ref": "PrivateFrontEndAppSubnetZone2" },
+				"RouteTableId": { "Ref": "PrivateRouteTableZone2" }
+			}
+		},
+
+		"PrivateBackEndAppSubnetRouteTableAssociationZone2" : {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": { "Ref": "PrivateBackEndAppSubnetZone2" },
+				"RouteTableId": { "Ref": "PrivateRouteTableZone2" }
+			}
+		},
+
+		"PrivateRouteTableZone1BasesysVpcPeeringRoute": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "CreateBasesysVpcPeering",
+			"Properties": {
+				"RouteTableId": { "Ref": "PrivateRouteTableZone1" },
+				"DestinationCidrBlock": { "Ref": "BasesysVpcCidrBlock"},
+				"VpcPeeringConnectionId" : { "Ref" : "VPCPeeringToBasesys" }
+			}
+		},
+
+		"PrivateRouteTableZone1BasesysVpcPeeringReverseRoute": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "CreateBasesysVpcPeering",
+			"Properties": {
+				"RouteTableId": { "Ref": "BaseSysVpcPrivateRouteTableZone1" },
+				"DestinationCidrBlock": { "Ref": "VpcCidrBlock" },
+				"VpcPeeringConnectionId" : { "Ref" : "VPCPeeringToBasesys" }
+			}
+		},
+
+		"PrivateRouteTableZone2BasesysVpcPeeringRoute": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "CreateBasesysVpcPeering",
+			"Properties": {
+				"RouteTableId": { "Ref": "PrivateRouteTableZone2" },
+				"DestinationCidrBlock": { "Ref": "BasesysVpcCidrBlock"},
+				"VpcPeeringConnectionId" : { "Ref" : "VPCPeeringToBasesys" }
+			}
+		},
+
+		"PrivateRouteTableZone2BasesysVpcPeeringReverseRoute": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "CreateBasesysVpcPeering",
+			"Properties": {
+				"RouteTableId": { "Ref": "BaseSysVpcPrivateRouteTableZone2" },
+				"DestinationCidrBlock": { "Ref": "VpcCidrBlock" },
+				"VpcPeeringConnectionId" : { "Ref" : "VPCPeeringToBasesys" }
+			}
+		}
+	},
+
+	"Outputs" : {
+
+		"VpcId": {
+			"Description": "Vpc ID",
+			"Value": { "Ref": "Vpc" }
+		},
+
+		"NatGateway": {
+			"Description": "NatGateway ID",
+			"Value": { "Ref": "NatGateway" }
+		},
+
+		"PublicRoutingSubnetZone1": {
+			"Description": "Routing subnet in Availability Zone 1",
+			"Value": { "Ref": "PublicRoutingSubnetZone1" }
+		},
+
+		"PublicRoutingSubnetZone2": {
+			"Description": "Routing subnet in Availability Zone 2",
+			"Value": { "Ref": "PublicRoutingSubnetZone2" }
+		},
+
+		"PrivateFrontEndAppSubnetZone1": {
+			"Description": "Public application subnet in Availability Zone 1",
+			"Value": { "Ref": "PrivateFrontEndAppSubnetZone1" }
+		},
+
+		"PrivateFrontEndAppSubnetZone2": {
+			"Description": "Public application subnet in Availability Zone 2",
+			"Value": { "Ref": "PrivateFrontEndAppSubnetZone2" }
+		},
+
+		"PrivateBackEndAppSubnetZone1": {
+			"Description": "Private application subnet in Availability Zone 1",
+			"Value": { "Ref": "PrivateBackEndAppSubnetZone1" }
+		},
+
+		"PrivateBackEndAppSubnetZone2": {
+			"Description": "Private application subnet in Availability Zone 2",
+			"Value": { "Ref": "PrivateBackEndAppSubnetZone2" }
+		},
+
+		"InternetGatewayRouteTable": {
+			"Description": "Route table used by public subnets",
+			"Value": { "Ref": "InternetGatewayRouteTable" }
+		},
+
+		"PrivateRouteTableZone1": {
+			"Description": "Route table used by private subnets in zone 1",
+			"Value": { "Ref": "PrivateRouteTableZone1" }
+		},
+
+		"PrivateRouteTableZone2": {
+			"Description": "Route table used by private subnets in zone 2",
+			"Value": { "Ref": "PrivateRouteTableZone2" }
+		}
+	}
+}

@@ -1,0 +1,84 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Jianhua DevOps Demo Prerequisites",
+
+	"Parameters": {
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"DefaultVpcId": {
+			"Description": "AWS Generated Default VPC ID",
+			"Type": "String"
+		},
+
+		"VPCRegion": {
+			"Description": "VPC Region",
+			"Type": "String"
+		}
+
+	},
+
+	"Mappings": {
+		"Region": {
+			"ap-northeast-1": {
+				"RegionName": "tokyo",
+				"AvailabilityZone1": "ap-northeast-1a",
+				"AvailabilityZone2": "ap-northeast-1c",
+				"S3Endpoint": "s3-ap-northeast-1.amazonaws.com",
+				"BucketStacks": "stacks-tokyo-demo",
+				"BucketBinaries": "binaries-tokyo-demo",
+				"BucketScripts": "scripts-tokyo-demo",
+				"BucketKeys": "keys-tokyo-demo",
+				"DefaultVpcId": "vpc-a5ab77c1"
+			},
+			"ap-southeast-2": {
+				"RegionName": "sydney",
+				"AvailabilityZone1": "ap-southeast-1a",
+				"AvailabilityZone2": "ap-southeast-1b",
+				"S3Endpoint": "s3-ap-southeast-2.amazonaws.com",
+				"BucketStacks": "stacks-tokyo-demo",
+				"BucketBinaries": "binaries-tokyo-demo",
+				"BucketScripts": "scripts-tokyo-demo",
+				"BucketKeys": "keys-tokyo-demo",
+				"DefaultVpcId": "vpc-521b5637"
+			}
+		}
+	},
+
+	"Conditions": {
+	},
+
+	"Resources": {
+		"InternalDnsHostedZone": {
+  		"Type": "AWS::Route53::HostedZone",
+  			"Properties": {
+    		"HostedZoneConfig": {
+      		"Comment": "My VPC Internal hosted zone for InforFrontier.local"
+    		},
+    		"Name": { "Ref": "InternalDnsSuffix" },
+    		"VPCs": [{
+      		"VPCId": { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "DefaultVpcId" ] },
+      		"VPCRegion": { "Ref": "VPCRegion" }
+    			}],
+    		"HostedZoneTags" : [{
+      		"Key": "SampleKey1",
+      		"Value": "SampleValue1"
+    		}]
+  		}
+		}
+	},
+
+	"Outputs": {
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Internal DNS Host Zone ID",
+			"Value": { "Ref": "InternalDnsHostedZone" }
+		}
+
+	}
+
+}

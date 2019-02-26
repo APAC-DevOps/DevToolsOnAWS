@@ -1,0 +1,460 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Demo App VPC Security Groups",
+
+	"Parameters": {
+
+		"AllDestinationCidrBlock": {
+			"Description": "IP Address Block for All Destination",
+			"Type": "String"
+		},
+
+		"SgBuildSvr": {
+			"Description": "Security Group ID of Build Server from base infra VPC",
+			"Type": "String"
+		},
+
+		"VpcId": {
+			"Description": "VPC Id",
+			"Type": "String"
+		},
+
+		"VpcName": {
+			"Description": "VPC name descriptor.",
+			"Type": "String"
+		},
+
+		"VpnSubnetCidr": {
+			"Description": "Vpn subnet range with cidr notation.",
+			"Type": "String"
+		},
+
+		"NexusSubnetCidr": {
+			"Description": "Nexus subnet CIDR.",
+			"Type": "String"
+		},
+
+		"NatGateway": {
+			"Description": "VPC NatGateway",
+			"Type": "String"
+		}
+	},
+
+	"Conditions": {
+		"CreateVpnSubnetRule": { "Fn::Not": [ { "Fn::Equals": [ { "Ref": "VpnSubnetCidr" }, "" ] } ] }
+	},
+
+	"Resources": {
+
+		"SecurityGroupLinuxServer": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Security Groups to Common Linux Servers.",
+				"SecurityGroupIngress": [ {
+						"IpProtocol": "tcp",
+						"FromPort": "22",
+						"ToPort": "22",
+						"SourceSecurityGroupId": { "Ref": "SecurityGroupSshClient" }
+					}, {
+						"IpProtocol": "tcp",
+						"FromPort": "22",
+						"ToPort": "22",
+						"CidrIp": { "Ref": "VpnSubnetCidr" }
+					}, {
+						"IpProtocol": "tcp",
+						"FromPort": "22",
+						"ToPort": "22",
+						"SourceSecurityGroupId": { "Ref": "SgBuildSvr" }
+					}
+				],
+				"SecurityGroupEgress": [ {
+						"IpProtocol": "udp",
+						"FromPort": "53",
+						"ToPort": "53",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}, {
+						"IpProtocol": "udp",
+						"FromPort": "123",
+						"ToPort": "123",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}, {
+						"IpProtocol": "tcp",
+						"FromPort": "80",
+						"ToPort": "80",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}, {
+						"IpProtocol": "tcp",
+						"FromPort": "443",
+						"ToPort": "443",
+						"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+					}
+				],
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Linux Server" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"SecurityGroupSshClient": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Security group to SSH Clients.",
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "SSH Client" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"EgressRuleSshClient1": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupSshClient" },
+				"IpProtocol": "tcp",
+				"FromPort": "22",
+				"ToPort": "22",
+				"SourceSecurityGroupId": { "Ref": "SecurityGroupLinuxServer" }
+			}
+		},
+
+		"SecurityGroupDemoAppSingle": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Security group for single instance Demo app deployments.",
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Demo App Single" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"DemoAppSingleHTTPInboundRuleFromAnywhere": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoAppSingle" },
+				"IpProtocol": "tcp",
+				"FromPort": "80",
+				"ToPort": "80",
+				"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+			}
+		},
+
+		"DemoAppSingleHTTPInboundRuleFromVpnSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateVpnSubnetRule",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoAppSingle" },
+				"IpProtocol": "tcp",
+				"FromPort": "80",
+				"ToPort": "80",
+				"CidrIp": { "Ref": "VpnSubnetCidr" }
+			}
+		},
+
+		"DemoAppSingleHTTPSInboundRuleFromVpnSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateVpnSubnetRule",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoAppSingle" },
+				"IpProtocol": "tcp",
+				"FromPort": "443",
+				"ToPort": "443",
+				"CidrIp": { "Ref": "VpnSubnetCidr" }
+			}
+		},
+
+		"DemoAppSingle27017to27019InboundRuleFromVpnSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateVpnSubnetRule",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoAppSingle" },
+				"IpProtocol": "tcp",
+				"FromPort": "27017",
+				"ToPort": "27019",
+				"CidrIp": { "Ref": "VpnSubnetCidr" }
+			}
+		},
+
+		"DemoAppSingle8443InboundRuleFromVpnSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateVpnSubnetRule",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoAppSingle" },
+				"IpProtocol": "tcp",
+				"FromPort": "8443",
+				"ToPort": "8443",
+				"CidrIp": { "Ref": "VpnSubnetCidr" }
+			}
+		},
+
+		"DemoAppSingle28001to28003InboundRuleFromVpnSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateVpnSubnetRule",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoAppSingle" },
+				"IpProtocol": "tcp",
+				"FromPort": "28001",
+				"ToPort": "28003",
+				"CidrIp": { "Ref": "VpnSubnetCidr" }
+			}
+		},
+
+		"DemoAppSingleHTTPSOutboundRuleToNexusSvr": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoAppSingle" },
+				"IpProtocol": "tcp",
+				"FromPort": "443",
+				"ToPort": "443",
+				"CidrIp": { "Ref": "NexusSubnetCidr" }
+			}
+		},
+
+		"DemoAppSingle465OutboundRuleToAllDestination": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoAppSingle" },
+				"IpProtocol": "tcp",
+				"FromPort": "465",
+				"ToPort": "465",
+				"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+			}
+		},
+
+		"DemoAppSingle8081OutboundRuleToRepoSvr": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoAppSingle" },
+				"IpProtocol": "tcp",
+				"FromPort": "8081",
+				"ToPort": "8081",
+				"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+			}
+		},
+
+		"DemoAppSingle993OutboundRuleToAllDestination": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoAppSingle" },
+				"IpProtocol": "tcp",
+				"FromPort": "993",
+				"ToPort": "993",
+				"CidrIp": { "Ref": "AllDestinationCidrBlock" }
+			}
+		},
+
+		"DemoAppSingle3306OutboundRuleToRdsMysql": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoAppSingle" },
+				"IpProtocol": "tcp",
+				"FromPort": "3306",
+				"ToPort": "3306",
+				"SourceSecurityGroupId": { "Ref": "SecurityGroupDemoRdsMysql" }
+			}
+		},
+
+		"SecurityGroupDemoFrontEndElb": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Security group for Demo app web elbs.",
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Demo App Web ELB" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"DemoFrontEndElbHTTPInboundRuleFromVpnSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateVpnSubnetRule",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoFrontEndElb" },
+				"IpProtocol": "tcp",
+				"FromPort": "80",
+				"ToPort": "80",
+				"CidrIp": { "Ref": "VpnSubnetCidr" }
+			}
+		},
+
+		"DemoFrontEndElbHTTPSInboundRuleFromVpnSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateVpnSubnetRule",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoFrontEndElb" },
+				"IpProtocol": "tcp",
+				"FromPort": "443",
+				"ToPort": "443",
+				"CidrIp": { "Ref": "VpnSubnetCidr" }
+			}
+		},
+
+		"DemoFrontEndElbHTTPOutboundRuleToFrontEndSvr": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoFrontEndElb" },
+				"IpProtocol": "tcp",
+				"FromPort": "80",
+				"ToPort": "80",
+				"SourceSecurityGroupId": { "Ref": "SecurityGroupDemoFrontEnd" }
+			}
+		},
+
+		"DemoFrontEndElbHTTPSOutboundRuleToFrontEndSvr": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoFrontEndElb" },
+				"IpProtocol": "tcp",
+				"FromPort": "443",
+				"ToPort": "443",
+				"SourceSecurityGroupId": { "Ref": "SecurityGroupDemoFrontEnd" }
+			}
+		},
+
+		"SecurityGroupDemoFrontEnd": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Security group for Demo app web servers.",
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Demo App Web" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"DemoFrontEndHTTPInboundRuleFromFrontEndElb": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoFrontEnd" },
+				"IpProtocol": "tcp",
+				"FromPort": "80",
+				"ToPort": "80",
+				"SourceSecurityGroupId": { "Ref": "SecurityGroupDemoFrontEndElb" }
+			}
+		},
+
+		"DemoFrontEndHTTPSInboundRuleFromFrontEndElb": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoFrontEnd" },
+				"IpProtocol": "tcp",
+				"FromPort": "443",
+				"ToPort": "443",
+				"SourceSecurityGroupId": { "Ref": "SecurityGroupDemoFrontEndElb" }
+			}
+		},
+
+		"DemoFrontEndHTTPSOutboundRuleToRepoSvr": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoFrontEnd" },
+				"IpProtocol": "tcp",
+				"FromPort": "443",
+				"ToPort": "443",
+				"CidrIp": { "Ref": "NexusSubnetCidr" }
+			}
+		},
+
+		"DemoFrontEnd3306OutboundRuleToRdsMysql": {
+			"Type": "AWS::EC2::SecurityGroupEgress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoFrontEnd" },
+				"IpProtocol": "tcp",
+				"FromPort": "3306",
+				"ToPort": "3306",
+				"SourceSecurityGroupId": { "Ref": "SecurityGroupDemoRdsMysql" }
+			}
+		},
+
+		"SecurityGroupDemoRdsMysql": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Security group for Rds Mysql in Demo Env.",
+				"VpcId": { "Ref": "VpcId" },
+				"Tags": [
+					{ "Key": "Name", "Value": { "Fn::Join": [ " - ", [ { "Ref": "VpcName" }, "Demo Env Rds Mysql" ] ] } },
+					{ "Key": "Segment", "Value": "core" },
+					{ "Key": "Vpc", "Value": { "Ref": "VpcName" } }
+				]
+			}
+		},
+
+		"DemoRdsMysql3306InboundRuleFromFrontendSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoRdsMysql" },
+				"IpProtocol": "tcp",
+				"FromPort": "3306",
+				"ToPort": "3306",
+				"SourceSecurityGroupId": { "Ref": "SecurityGroupDemoFrontEnd" }
+			}
+		},
+
+		"DemoRdsMysql3306InboundRuleFromFrontendSingle": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoRdsMysql" },
+				"IpProtocol": "tcp",
+				"FromPort": "3306",
+				"ToPort": "3306",
+				"SourceSecurityGroupId": { "Ref": "SecurityGroupDemoAppSingle" }
+			}
+		},
+
+		"DemoRdsMysql3306InboundRuleFromVpnSvr": {
+			"Type": "AWS::EC2::SecurityGroupIngress",
+			"Condition": "CreateVpnSubnetRule",
+			"Properties": {
+				"GroupId": { "Ref": "SecurityGroupDemoRdsMysql" },
+				"IpProtocol": "tcp",
+				"FromPort": "3306",
+				"ToPort": "3306",
+				"CidrIp": { "Ref": "VpnSubnetCidr" }
+			}
+		}
+	},
+
+	"Outputs": {
+
+		"SecurityGroupLinuxServer": {
+			"Description": "Security group that is common to all accessible linux servers.",
+			"Value": { "Ref": "SecurityGroupLinuxServer" }
+		},
+
+		"SecurityGroupSshClient": {
+			"Description": "Security group to SSH client.",
+			"Value": { "Ref": "SecurityGroupSshClient" }
+		},
+
+		"SecurityGroupDemoAppSingle": {
+			"Description": "Security group for single instance Demo app deployments.",
+			"Value": { "Ref": "SecurityGroupDemoAppSingle" }
+		},
+
+		"SecurityGroupDemoFrontEndElb": {
+			"Description": "Security group for Demo app web elbs.",
+			"Value": { "Ref": "SecurityGroupDemoFrontEndElb" }
+		},
+
+		"SecurityGroupDemoFrontEnd": {
+			"Description": "Security group for Demo app web servers.",
+			"Value": { "Ref": "SecurityGroupDemoFrontEnd" }
+		},
+		"SecurityGroupDemoRdsMysql": {
+			"Description": "Security group for Demo app web servers.",
+			"Value": { "Ref": "SecurityGroupDemoRdsMysql" }
+		}
+	}
+}

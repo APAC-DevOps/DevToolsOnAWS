@@ -1,0 +1,274 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Parameters": {
+
+    "Target": {
+      "Description": "Deployment target.",
+      "Type": "String",
+      "AllowedValues": [ "frontendintegration", "frontendproduction", "frontend" ]
+    },
+
+    "FrontEndInstanceType": {
+      "Description": "Instance Type of Front End ELB",
+      "Type": "String"
+    },
+
+    "NotificationEmail": {
+      "Description": "EMail address to notify if there are any scaling operations",
+      "Type": "String",
+      "Default": "wujianhua@outlook.jp",
+      "AllowedPattern": "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)",
+      "ConstraintDescription": "must be a valid email address."
+    },
+
+    "AvailabilityZone1": {
+			"Description": "Availability zone 1.",
+			"Type": "String"
+		},
+
+		"AvailabilityZone2": {
+			"Description": "Availability zone 2.",
+			"Type": "String"
+		},
+
+		"PublicApplicationSubnetZone1": {
+			"Description": "Public application subnet in Availability Zone 1.",
+			"Type": "String"
+		},
+
+		"PublicApplicationSubnetZone2": {
+			"Description": "Public application subnet in Availability Zone 2.",
+			"Type": "String"
+		},
+
+		"PrivateApplicationSubnetZone1": {
+			"Description": "Private application subnet in Availability Zone 1.",
+			"Type": "String"
+		},
+
+		"PrivateApplicationSubnetZone2": {
+			"Description": "Private application subnet in Availability Zone 2.",
+			"Type": "String"
+		},
+
+		"FrontEndELBSG": {
+			"Description": "Security group that is common to all accessible linux servers.",
+			"Type": "String"
+		},
+
+		"FrontEndNginxSG": {
+			"Description": "Security group for single instance InfoFrontier app deployments.",
+			"Type": "String"
+		},
+
+		"FrontEndNginxRole": {
+			"Description": "IAM Role for InfoFrontier App Single.",
+			"Type": "String"
+		},
+
+    "ProfileSingle": {
+      "Description": "IAM Profile for InfoFrontier App Single.",
+      "Type": "String"
+    },
+
+		"FrontEndProfile": {
+			"Description": "IAM Profile for InfoFrontier App Single.",
+			"Type": "String"
+		},
+
+    "RoleSingle": {
+      "Description": "IAM Role For InfoFrontier App Single",
+      "Type": "String"
+    },
+
+		"FrontEndSNS": {
+			"Description": "SNS Topic to be used by InfoFrontier App Single autoscaling.",
+			"Type": "String"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for internal DNS.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"NewRelicLicenseKey": {
+			"Description": "New Relic License Key.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"TimeZone": {
+			"Description": "Time zone setting for servers.",
+			"Type": "String"
+		},
+
+		"BucketSuffix": {
+			"Description": "This determines the suffix used for all buckets creates.",
+			"Type": "String"
+		},
+
+		"BucketKeysPrefix": {
+			"Description": "This determines the prefix used the keys bucket.",
+			"Type": "String"
+		},
+
+    "BucketStacksPrefix": {
+			"Description": "This determines the prefix used the stacks bucket.",
+			"Type": "String"
+		},
+
+		"BucketScriptsPrefix": {
+			"Description": "This determines the prefix used the scripts bucket.",
+			"Type": "String"
+		},
+
+    "RefId": {
+      "Description": "Reference id. This is usually the jira reference.",
+      "Type": "String"
+    },
+
+    "SecurityGroupLinuxServer": {
+    "Description": "Security group that is common to all accessible linux servers.",
+    "Type": "String"
+  },
+
+  "SecurityGroupInfoFrontierAppSingle": {
+    "Description": "Security group for single instance InfoFrontier app deployments.",
+    "Type": "String"
+  }
+
+  },
+
+  "Mappings": {
+
+    "Static": {
+
+			"Final": {
+				"EnvironmentName": "demoenv",
+        "VpcName": "demoappvpc"
+			},
+
+			"Keys": {
+
+				"NatInstanceKeyName": "integration-app-InfoFrontier-single"
+
+			}
+		},
+
+    "Ami": {
+
+      "us-east-1": {
+        "Base": "ami-146e2a7c"
+      },
+      "us-west-1": {
+        "Base": "ami-42908907"
+      },
+      "us-west-2": {
+        "Base": "ami-dfc39aef"
+      },
+      "eu-west-1": {
+        "Base": "ami-9d23aeea"
+      },
+      "eu-central-1": {
+        "Base": "ami-04003319"
+      },
+      "ap-northeast-1": {
+        "Base": "ami-18869819"
+      },
+      "ap-southeast-1": {
+        "Base": "ami-96bb90c4"
+      },
+      "ap-southeast-2": {
+        "Base": "ami-fd9cecc7"
+      },
+      "sa-east-1": {
+        "Base": "ami-af9925b2"
+      }
+    },
+
+    "Region": {
+
+      "us-east-1": {
+        "RegionName": "virginia",
+        "S3Endpoint": "s3.amazonaws.com"
+      },
+      "us-west-1": {
+        "RegionName": "california",
+        "S3Endpoint": "s3.amazonaws.com"
+      },
+      "us-west-2": {
+        "RegionName": "oregon",
+        "S3Endpoint": "s3.amazonaws.com"
+      },
+      "eu-west-1": {
+        "RegionName": "ireland",
+        "S3Endpoint": "s3-eu-west-1.amazonaws.com"
+      },
+      "eu-central-1": {
+        "RegionName": "frankfurt",
+        "S3Endpoint": "s3-eu-central-1.amazonaws.com"
+      },
+      "ap-northeast-1": {
+        "RegionName": "japan",
+        "S3Endpoint": "s3-ap-northeast-1.amazonaws.com"
+      },
+      "ap-southeast-1": {
+        "RegionName": "singapore",
+        "S3Endpoint": "s3-ap-southeast-1.amazonaws.com"
+      },
+      "ap-southeast-2": {
+        "RegionName": "sydney",
+        "S3Endpoint": "s3-ap-southeast-2.amazonaws.com"
+      },
+      "sa-east-1": {
+        "RegionName": "brazil",
+        "S3Endpoint": "s3-sa-east-1.amazonaws.com"
+      }
+    }
+  },
+
+
+  "Resources": {
+    "FrontEndELB": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": { "Fn::Join": [ "", [ "https://", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "S3Endpoint" ] }, "/", { "Ref": "BucketStacksPrefix" }, "-", { "Fn::FindInMap": [ "Region", { "Ref": "AWS::Region" }, "RegionName" ] }, "-", { "Ref": "BucketSuffix" }, "/", { "Fn::FindInMap": [ "Static", "Final", "EnvironmentName" ] }, "/frontend/elb-autoscaling.json" ] ] },
+        "Parameters": {
+          "Target": { "Ref": "Target" },
+          "FrontEndInstanceType": { "Ref": "FrontEndInstanceType" },
+          "NotificationEmail": { "Ref": "NotificationEmail" },
+          "AvailabilityZone1": { "Ref": "AvailabilityZone1" },
+          "AvailabilityZone2": { "Ref": "AvailabilityZone2" },
+          "PublicApplicationSubnetZone1": { "Ref": "PublicApplicationSubnetZone1" },
+          "PublicApplicationSubnetZone2": { "Ref": "PublicApplicationSubnetZone2" },
+          "PrivateApplicationSubnetZone1": { "Ref": "PrivateApplicationSubnetZone1" },
+          "PrivateApplicationSubnetZone2": { "Ref": "PrivateApplicationSubnetZone2" },
+          "FrontEndELBSG": { "Ref": "FrontEndELBSG" },
+          "FrontEndNginxSG": { "Ref": "FrontEndNginxSG"},
+          "FrontEndNginxRole": { "Ref": "FrontEndNginxRole" },
+          "RoleSingle": { "Ref": "RoleSingle" },
+          "ProfileSingle": { "Ref": "ProfileSingle" },
+          "FrontEndProfile": { "Ref": "FrontEndProfile" },
+          "FrontEndSNS": { "Ref": "FrontEndSNS" },
+          "InternalDnsHostedZoneId": { "Ref": "InternalDnsHostedZoneId" },
+          "InternalDnsSuffix": { "Ref": "InternalDnsSuffix" },
+          "NewRelicLicenseKey": { "Ref": "NewRelicLicenseKey" },
+          "TimeZone": { "Ref": "TimeZone" },
+          "BucketSuffix": { "Ref": "BucketSuffix" },
+          "BucketKeysPrefix": { "Ref": "BucketKeysPrefix" },
+          "BucketScriptsPrefix": { "Ref": "BucketScriptsPrefix" },
+          "BucketStacksPrefix": { "Ref": "BucketStacksPrefix" },
+          "RefId": { "Ref": "RefId" },
+          "SecurityGroupLinuxServer": { "Ref": "SecurityGroupLinuxServer" },
+          "SecurityGroupInfoFrontierAppSingle": { "Ref": "SecurityGroupInfoFrontierAppSingle" }
+        }
+      }
+    }
+  }
+}

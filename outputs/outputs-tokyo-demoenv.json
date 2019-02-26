@@ -1,0 +1,21 @@
+{
+    "AvailabilityZone1": "ap-northeast-1a",
+    "AvailabilityZone2": "ap-northeast-1c",
+    "PrivateFrontEndAppSubnetZone1": "subnet-dc530895",
+    "PrivateFrontEndAppSubnetZone2": "subnet-a8a83cf3",
+    "ProfileUat": "demoenv-stack-entry-IamMsg-UK3TGD4GAWLF-ProfileUat-1AZAXY12EVKYT",
+    "SecurityGroupDemoFrontEnd": "sg-9889b9e1",
+    "SecurityGroupSshClient": "sg-9587b7ec",
+    "SecurityGroupDemoFrontEndElb": "sg-d98abaa0",
+    "VpcId": "vpc-e3f07284",
+    "SnsUat": "arn:aws:sns:ap-northeast-1:862840685180:demoappvpc-IamMsgUat",
+    "SecurityGroupDemoAppSingle": "sg-4087b739",
+    "RoleUat": "demoenv-stack-entry-IamMsg-UK3TGD4GAWLF-RoleUat-JQND4W4TPQ75",
+    "SecurityGroupLinuxServer": "sg-0c85b575",
+    "ProfileTest": "demoenv-stack-entry-IamMsg-UK3TGD4GAWLF-ProfileTest-162JZ2CS7UXI7",
+    "PrivateBackEndAppSubnetZone2": "subnet-afa83cf4",
+    "SnsTest": "arn:aws:sns:ap-northeast-1:862840685180:demoappvpc-IamMsgTest",
+    "PrivateBackEndAppSubnetZone1": "subnet-2a5d0663",
+    "RoleTest": "demoenv-stack-entry-IamMsg-UK3TGD4GAWLF-RoleTest-W69R46W5USBT",
+    "SecurityGroupDemoRdsMysql": "sg-2f88b856"
+}

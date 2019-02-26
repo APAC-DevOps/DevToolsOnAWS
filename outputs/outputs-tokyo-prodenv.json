@@ -1,0 +1,20 @@
+{
+    "AvailabilityZone1": "ap-northeast-1a",
+    "AvailabilityZone2": "ap-northeast-1c",
+    "ProfileProdFrontEnd": "prodenv-stack-entry-IamMsg-4MSFT8SPANFM-ProfileProdFrontEnd-4F21SB6E92WB",
+    "PrivateFrontEndAppSubnetZone1": "subnet-8b5d06c2",
+    "PrivateFrontEndAppSubnetZone2": "subnet-3855c163",
+    "NatGateway": "nat-0f288bedd6b35caae",
+    "RoleProdFrontEnd": "prodenv-stack-entry-IamMsg-4MSFT8-RoleProdFrontEnd-ZNW82I8E0ZRN",
+    "SecurityGroupSshClient": "sg-1388b86a",
+    "VpcId": "vpc-6df6740a",
+    "SecurityGroupProdFrontEndElb": "sg-0b8bbb72",
+    "SecurityGroupProdBackEndRds": "sg-8e89b9f7",
+    "SecurityGroupLinuxServer": "sg-4c8cbc35",
+    "PublicRoutingSubnetZone2": "subnet-3f55c164",
+    "SecurityGroupProdFrontEnd": "sg-cd8abab4",
+    "SnsProd": "arn:aws:sns:ap-northeast-1:862840685180:ProdAppVpc-IamMsgProd",
+    "PrivateBackEndAppSubnetZone2": "subnet-3ea93d65",
+    "PublicRoutingSubnetZone1": "subnet-375c077e",
+    "PrivateBackEndAppSubnetZone1": "subnet-c4500b8d"
+}

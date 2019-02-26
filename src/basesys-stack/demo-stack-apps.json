@@ -1,0 +1,496 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "DevOps Demo Base Systems",
+
+	"Parameters": {
+
+		"PrivateScmSubnetZone1": {
+			"Description": "Private subnet in zone 1 for deploying scm instances.",
+			"Type": "String"
+		},
+
+		"PrivateScmSubnetZone2": {
+			"Description": "Private subnet in zone 2 for deploying scm instances.",
+			"Type": "String"
+		},
+
+		"PrivateBuildSubnetZone1": {
+			"Description": "Private subnet in zone 1 for deploying build instances.",
+			"Type": "String"
+		},
+
+		"PrivateBuildSubnetZone2": {
+			"Description": "Private subnet in zone 2 for deploying build instances.",
+			"Type": "String"
+		},
+
+		"PrivateRepositorySubnetZone1": {
+			"Description": "Private subnet in zone 1 for deploying repository instances.",
+			"Type": "String"
+		},
+
+		"PrivateRepositorySubnetZone2": {
+			"Description": "Private subnet in zone 2 for deploying repository instances.",
+			"Type": "String"
+		},
+
+		"SecurityGroupLinuxServer": {
+			"Description": "Security group that is common to all accessible linux servers.",
+			"Type": "String"
+		},
+
+		"SecurityGroupScmServer": {
+			"Description": "Scm server security group.",
+			"Type": "String"
+		},
+
+		"SecurityGroupBambooServer": {
+			"Description": "Bamboo server security group.",
+			"Type": "String"
+		},
+
+		"SecurityGroupNexusServer": {
+			"Description": "Nexus server security group.",
+			"Type": "String"
+		},
+
+		"SecurityGroupConfluenceServer": {
+			"Description": "Wiki server security group.",
+			"Type": "String"
+		},
+
+		"CompanyName": {
+			"Description": "Name of the company.",
+			"Type": "String"
+		},
+
+		"S3Endpoint": {
+			"Description": "S3 endpoint.",
+			"Type": "String"
+		},
+
+		"StackPath": {
+			"Description": "Root path for all stacks.",
+			"Type": "String"
+		},
+
+		"ScriptPath": {
+			"Description": "Root path for all scripts.",
+			"Type": "String"
+		},
+
+		"BinaryPath": {
+			"Description": "Root path for all binaries.",
+			"Type": "String"
+		},
+
+		"AvailabilityZone1": {
+			"Description": "Availability zone 1",
+			"Type": "String"
+		},
+
+		"AvailabilityZone2": {
+			"Description": "Availability zone 2",
+			"Type": "String"
+		},
+
+		"NotificationEmail": {
+			"Description": "This email address will receive all autoscaling event notifications.",
+			"Type": "String",
+			"AllowedPattern": "^[^@]+@[^@]+\\.[^@]+$"
+		},
+
+		"BaseAmi": {
+			"Description": "Base AMI",
+			"Type": "String"
+		},
+
+		"TimeZone": {
+			"Description": "Time zone setting for servers.",
+			"Type": "String"
+		},
+
+		"BucketScripts": {
+			"Description": "Bucket hosting bootstrap scripts.",
+			"Type": "String"
+		},
+
+		"BucketBinaries": {
+			"Description": "Bucket hosting binary files.",
+			"Type": "String"
+		},
+
+		"BucketStacks": {
+			"Description": "Bucket hosting binary files.",
+			"Type": "String"
+		},
+
+		"BucketKeys": {
+			"Description": "Bucket hosting ssl certs.",
+			"Type": "String"
+		},
+
+		"InternalDnsHostedZoneId": {
+			"Description": "Hosted zone id for internal DNS.",
+			"Type": "String"
+		},
+
+		"InternalDnsSuffix": {
+			"Description": "DNS Suffix used within the VPC. This applies to instance host names and to dns names.",
+			"Type": "String"
+		},
+
+		"EnableSsl": {
+			"Description": "Determines if SSL is enabled for all web apps.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"KeyNameScm": {
+			"Description": "Name of the key pair for Scm instances.",
+			"Type": "String"
+		},
+
+		"KeyNameBamboo": {
+			"Description": "Name of the key pair for bamboo instances.",
+			"Type": "String"
+		},
+
+		"KeyNameNexus": {
+			"Description": "Name of the key pair for nexus instances.",
+			"Type": "String"
+		},
+
+		"CreateScmCluster": {
+			"Description": "Determines if a Scm cluster is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CreateBambooCluster": {
+			"Description": "Determines if a Bamboo cluster is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"CreateNexusCluster": {
+			"Description": "Determines if a Nexus cluster is created.",
+			"Type": "String",
+			"Default": "no"
+		},
+
+		"ScmInstanceType": {
+			"Description": "Instance type to use for Scm servers.",
+			"Type": "String"
+		},
+
+		"BambooInstanceType": {
+			"Description": "Instance type to use for bamboo servers.",
+			"Type": "String"
+		},
+
+		"NexusInstanceType": {
+			"Description": "Instance type to use for nexus servers.",
+			"Type": "String"
+		},
+
+		"ScmHostname": {
+			"Description": "Host name prefix for Scm servers.",
+			"Type": "String"
+		},
+
+		"ScmVersion": {
+			"Description": "Scm application version.",
+			"Type": "String"
+		},
+
+		"ScmDatabasePassword": {
+			"Description": "Scm database password.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"ScmDataVolume": {
+			"Description": "Volume id of the Scm data.",
+			"Type": "String"
+		},
+
+		"BambooHostname": {
+			"Description": "Host name prefix for bamboo servers.",
+			"Type": "String"
+		},
+
+		"BambooVersion": {
+			"Description": "Bamboo application version.",
+			"Type": "String"
+		},
+
+		"BambooDatabasePassword": {
+			"Description": "Bamboo database password.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"BambooDataVolume": {
+			"Description": "Volume id of the bamboo data.",
+			"Type": "String"
+		},
+
+		"NexusHostname": {
+			"Description": "Host name prefix for nexus servers.",
+			"Type": "String"
+		},
+
+		"NexusVersion": {
+			"Description": "Nexus application version.",
+			"Type": "String"
+		},
+
+		"NexusDataVolume": {
+			"Description": "Volume id of the nexus data.",
+			"Type": "String"
+		},
+
+		"SingleZonePreference": {
+			"Description": "Preferred zone for single zone components.",
+			"Type": "String"
+		},
+
+		"CreateConfluenceCluster": {
+			"Description": "Determines if a Confluence cluster is created.",
+			"Type": "String"
+		},
+
+		"KeyNameConfluence": {
+			"Description": "Name of the key pair for Confluence instances.",
+			"Type": "String"
+		},
+
+		"ConfluenceInstanceType": {
+			"Description": "Instance type to use for Confluence servers.",
+			"Type": "String"
+		},
+
+		"ConfluenceHostname": {
+			"Description": "Host name prefix for Confluence servers.",
+			"Type": "String"
+		},
+
+		"ConfluenceVersion": {
+			"Description": "Confluence application version.",
+			"Type": "String"
+		},
+
+		"ConfluenceDatabasePassword": {
+			"Description": "Confluence Server database password.",
+			"Type": "String",
+			"NoEcho": "true"
+		},
+
+		"ConfluenceDataVolume": {
+			"Description": "Volume of Confluence Server User Data Directory",
+			"Type": "String"
+		},
+
+		"VpcId": {
+			"Description": "VPC Id Value",
+			"Type": "String"
+		}
+	},
+
+	"Conditions": {
+		"CreateScmCluster": { "Fn::Equals": [ { "Ref": "CreateScmCluster" }, "yes" ] },
+		"CreateBambooCluster": { "Fn::Equals": [ { "Ref": "CreateBambooCluster" }, "yes" ] },
+		"CreateNexusCluster": { "Fn::Equals": [ { "Ref": "CreateNexusCluster" }, "yes" ] },
+		"CreateConfluenceCluster": { "Fn::Equals": [ { "Ref": "CreateConfluenceCluster" }, "yes" ] }
+	},
+
+	"Resources": {
+
+		"ScmSvrStack": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Condition": "CreateScmCluster",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "/", [ { "Ref": "StackPath" }, "basesys-stack/scm/demo-scm-bitbucket.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"PrivateSubnetZone1": { "Ref": "PrivateScmSubnetZone1" },
+					"PrivateSubnetZone2": { "Ref": "PrivateScmSubnetZone2" },
+					"SecurityGroupLinuxServer": { "Ref": "SecurityGroupLinuxServer" },
+					"SecurityGroupAppServer": { "Ref": "SecurityGroupScmServer" },
+					"CompanyName": { "Ref": "CompanyName" },
+					"StackPath": { "Ref": "StackPath" },
+					"ScriptPath": { "Ref": "ScriptPath" },
+					"BinaryPath": { "Ref": "BinaryPath" },
+					"AvailabilityZone1": { "Ref": "AvailabilityZone1" },
+					"AvailabilityZone2": { "Ref": "AvailabilityZone2" },
+					"NotificationEmail": { "Ref": "NotificationEmail" },
+					"BaseAmi": { "Ref": "BaseAmi" },
+					"TimeZone": { "Ref": "TimeZone" },
+					"S3Endpoint": { "Ref": "S3Endpoint" },
+					"BucketScripts": { "Ref": "BucketScripts" },
+					"BucketBinaries": { "Ref": "BucketBinaries" },
+					"BucketStacks": { "Ref": "BucketStacks" },
+					"BucketKeys": { "Ref": "BucketKeys" },
+					"InternalDnsHostedZoneId": { "Ref": "InternalDnsHostedZoneId" },
+					"InternalDnsSuffix": { "Ref": "InternalDnsSuffix" },
+					"EnableSsl": { "Ref": "EnableSsl" },
+					"KeyName": { "Ref": "KeyNameScm" },
+					"InstanceType": { "Ref": "ScmInstanceType" },
+					"Hostname": { "Ref": "ScmHostname" },
+					"ScmVersion": { "Ref": "ScmVersion" },
+					"ScmDatabasePassword": { "Ref": "ScmDatabasePassword" },
+					"ScmDataVolume": { "Ref": "ScmDataVolume" },
+					"SingleZonePreference": { "Ref": "SingleZonePreference" },
+					"VpcId": { "Ref": "VpcId" }
+				}
+			}
+		},
+
+		"BuildSvrStack": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Condition": "CreateBambooCluster",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "/", [ { "Ref": "StackPath" }, "basesys-stack/build/demo-build-bamboo.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"PrivateSubnetZone1": { "Ref": "PrivateBuildSubnetZone1" },
+					"PrivateSubnetZone2": { "Ref": "PrivateBuildSubnetZone2" },
+					"SecurityGroupLinuxServer": { "Ref": "SecurityGroupLinuxServer" },
+					"SecurityGroupAppServer": { "Ref": "SecurityGroupBambooServer" },
+					"CompanyName": { "Ref": "CompanyName" },
+					"StackPath": { "Ref": "StackPath" },
+					"ScriptPath": { "Ref": "ScriptPath" },
+					"BinaryPath": { "Ref": "BinaryPath" },
+					"AvailabilityZone1": { "Ref": "AvailabilityZone1" },
+					"AvailabilityZone2": { "Ref": "AvailabilityZone2" },
+					"NotificationEmail": { "Ref": "NotificationEmail" },
+					"BaseAmi": { "Ref": "BaseAmi" },
+					"TimeZone": { "Ref": "TimeZone" },
+					"S3Endpoint": { "Ref": "S3Endpoint" },
+					"BucketScripts": { "Ref": "BucketScripts" },
+					"BucketBinaries": { "Ref": "BucketBinaries" },
+					"BucketStacks": { "Ref": "BucketStacks" },
+					"BucketKeys": { "Ref": "BucketKeys" },
+					"InternalDnsHostedZoneId": { "Ref": "InternalDnsHostedZoneId" },
+					"InternalDnsSuffix": { "Ref": "InternalDnsSuffix" },
+					"EnableSsl": { "Ref": "EnableSsl" },
+					"KeyName": { "Ref": "KeyNameBamboo" },
+					"InstanceType": { "Ref": "BambooInstanceType" },
+					"Hostname": { "Ref": "BambooHostname" },
+					"BambooVersion": { "Ref": "BambooVersion" },
+					"BambooDatabasePassword": { "Ref": "BambooDatabasePassword" },
+					"BambooDataVolume": { "Ref": "BambooDataVolume" },
+					"SingleZonePreference": { "Ref": "SingleZonePreference" },
+					"VpcId": { "Ref": "VpcId" }
+				}
+			}
+		},
+
+		"RepoSvrStack": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Condition": "CreateNexusCluster",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "/", [ { "Ref": "StackPath" }, "basesys-stack/repository/demo-repository-nexus.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"PrivateSubnetZone1": { "Ref": "PrivateRepositorySubnetZone1" },
+					"PrivateSubnetZone2": { "Ref": "PrivateRepositorySubnetZone2" },
+					"SecurityGroupLinuxServer": { "Ref": "SecurityGroupLinuxServer" },
+					"SecurityGroupAppServer": { "Ref": "SecurityGroupNexusServer" },
+					"CompanyName": { "Ref": "CompanyName" },
+					"StackPath": { "Ref": "StackPath" },
+					"ScriptPath": { "Ref": "ScriptPath" },
+					"BinaryPath": { "Ref": "BinaryPath" },
+					"AvailabilityZone1": { "Ref": "AvailabilityZone1" },
+					"AvailabilityZone2": { "Ref": "AvailabilityZone2" },
+					"NotificationEmail": { "Ref": "NotificationEmail" },
+					"BaseAmi": { "Ref": "BaseAmi" },
+					"TimeZone": { "Ref": "TimeZone" },
+					"S3Endpoint": { "Ref": "S3Endpoint" },
+					"BucketScripts": { "Ref": "BucketScripts" },
+					"BucketBinaries": { "Ref": "BucketBinaries" },
+					"BucketStacks": { "Ref": "BucketStacks" },
+					"BucketKeys": { "Ref": "BucketKeys" },
+					"InternalDnsHostedZoneId": { "Ref": "InternalDnsHostedZoneId" },
+					"InternalDnsSuffix": { "Ref": "InternalDnsSuffix" },
+					"EnableSsl": { "Ref": "EnableSsl" },
+					"KeyName": { "Ref": "KeyNameNexus" },
+					"InstanceType": { "Ref": "NexusInstanceType" },
+					"Hostname": { "Ref": "NexusHostname" },
+					"NexusVersion": { "Ref": "NexusVersion" },
+					"NexusDataVolume": { "Ref": "NexusDataVolume" },
+					"SingleZonePreference": { "Ref": "SingleZonePreference" },
+					"VpcId": { "Ref": "VpcId" }
+				}
+			}
+		},
+
+		"ConfluenceSvrStack": {
+			"Type": "AWS::CloudFormation::Stack",
+			"Condition": "CreateConfluenceCluster",
+			"Properties": {
+				"TemplateURL": { "Fn::Join": [ "/", [ { "Ref": "StackPath" }, "basesys-stack/confluence/demo-doc-confluence.json" ] ] },
+				"TimeoutInMinutes": "15",
+				"Parameters": {
+					"PrivateSubnetZone1": { "Ref": "PrivateBuildSubnetZone1" },
+					"PrivateSubnetZone2": { "Ref": "PrivateBuildSubnetZone2" },
+					"SecurityGroupLinuxServer": { "Ref": "SecurityGroupLinuxServer" },
+					"SecurityGroupAppServer": { "Ref": "SecurityGroupConfluenceServer" },
+					"CompanyName": { "Ref": "CompanyName" },
+					"StackPath": { "Ref": "StackPath" },
+					"ScriptPath": { "Ref": "ScriptPath" },
+					"BinaryPath": { "Ref": "BinaryPath" },
+					"AvailabilityZone1": { "Ref": "AvailabilityZone1" },
+					"AvailabilityZone2": { "Ref": "AvailabilityZone2" },
+					"NotificationEmail": { "Ref": "NotificationEmail" },
+					"BaseAmi": { "Ref": "BaseAmi" },
+					"TimeZone": { "Ref": "TimeZone" },
+					"S3Endpoint": { "Ref": "S3Endpoint" },
+					"BucketScripts": { "Ref": "BucketScripts" },
+					"BucketBinaries": { "Ref": "BucketBinaries" },
+					"BucketStacks": { "Ref": "BucketStacks" },
+					"BucketKeys": { "Ref": "BucketKeys" },
+					"InternalDnsHostedZoneId": { "Ref": "InternalDnsHostedZoneId" },
+					"InternalDnsSuffix": { "Ref": "InternalDnsSuffix" },
+					"EnableSsl": { "Ref": "EnableSsl" },
+					"KeyName": { "Ref": "KeyNameConfluence" },
+					"InstanceType": { "Ref": "ConfluenceInstanceType" },
+					"Hostname": { "Ref": "ConfluenceHostname" },
+					"ConfluenceVersion": { "Ref": "ConfluenceVersion" },
+					"ConfluenceDatabasePassword": { "Ref": "ConfluenceDatabasePassword" },
+					"ConfluenceDataVolume": { "Ref": "ConfluenceDataVolume" },
+					"SingleZonePreference": { "Ref": "SingleZonePreference" }
+				}
+			}
+		}
+	},
+
+	"Outputs": {
+		"BuildSvrLaunchConfig": {
+			"Description": "My Launch Configuration ID For Build Server Cluster",
+			"Value": { "Fn::If": [ "CreateBambooCluster", { "Fn::GetAtt": [ "BuildSvrStack", "Outputs.BuildSvrLaunchConfig" ] }, "" ] }
+		},
+
+		"BuildSvrASGroup": {
+			"Description": "My AutoScaling Group for Build Server Cluster",
+			"Value": { "Fn::If": [ "CreateBambooCluster", { "Fn::GetAtt": [ "BuildSvrStack", "Outputs.BuildSvrASGroup"] }, "" ] }
+		},
+
+		"BuildSvrRole": {
+			"Description": "IAM Role ID for Build Server",
+			"Value": { "Fn::If": [ "CreateBambooCluster", { "Fn::GetAtt": [ "BuildSvrStack", "Outputs.BuildSvrRole" ] }, "" ] }
+		},
+
+		"BuildSvrInstanceProfile": {
+			"Description": "IAM Instance Profile ID for Build Server",
+			"Value": { "Fn::If": [ "CreateBambooCluster", { "Fn::GetAtt": [ "BuildSvrStack", "Outputs.BuildSvrInstanceProfile" ] }, "" ] }
+		},
+
+		"BuildSvrSnsTopic": {
+			"Description": "Sns Topic for Build Server",
+			"Value": { "Fn::If": [ "CreateBambooCluster", {  "Fn::GetAtt": [ "BuildSvrStack", "Outputs.BuildSvrSnsTopic" ] }, "" ] }
+		}
+	}
+}
